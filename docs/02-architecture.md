@@ -13,7 +13,7 @@
 
 ### Backend
 - Laravel
-- PHP 8.4+
+- PHP 8.2+
 - PostgreSQL
 - Redis
 - Laravel Queue
