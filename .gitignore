@@ -1,0 +1,50 @@
+# --- Secrets & environment -------------------------------------------------
+# Never commit real environment files. Only *.example files are tracked.
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+auth.json
+
+# --- OS / editor -----------------------------------------------------------
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# --- Logs & temp -----------------------------------------------------------
+*.log
+tmp/
+.cache/
+
+# --- Backend (Laravel) -----------------------------------------------------
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot
+backend/public/storage
+backend/storage/*.key
+backend/.phpunit.cache/
+backend/.phpunit.result.cache
+backend/.php-cs-fixer.cache
+
+# --- Frontend (Next.js) ----------------------------------------------------
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/coverage/
+frontend/next-env.d.ts
+frontend/*.tsbuildinfo
+frontend/playwright-report/
+frontend/test-results/
+
+# --- Local infrastructure data ---------------------------------------------
+docker/data/
