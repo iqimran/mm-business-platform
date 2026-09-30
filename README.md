@@ -37,4 +37,13 @@ make check-secrets  # confirm no env/key files are tracked by git
 ```
 
 `.env` files are git-ignored. Only `*.example` files are committed. Keep real credentials out of the repository.
-Docker services are added in Task 002.
+
+```bash
+make setup          # build images, install backend deps, start the stack
+make artisan c="migrate --seed"
+```
+
+Services: API via nginx `http://localhost:8080` (health: `/up`), Next.js `http://localhost:3000`,
+PostgreSQL and Redis bound to `127.0.0.1`. If a port is already taken, change it in your local `.env`
+(`NGINX_PORT`, `FRONTEND_PORT`, `DB_PORT`, `REDIS_PORT`). Tests run against the separate `mm_platform_test` database:
+`docker compose exec backend php artisan test`.
