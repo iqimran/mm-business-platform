@@ -2,7 +2,9 @@
 
 namespace App\Modules\Identity\Models;
 
+use App\Modules\Branch\Concerns\HasBranchAccess;
 use App\Modules\Branch\Models\Branch;
+use App\Modules\Identity\Concerns\HasPermissions;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -20,7 +22,7 @@ use Illuminate\Notifications\Notifiable;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, HasUlids, Notifiable;
+    use HasBranchAccess, HasFactory, HasPermissions, HasUlids, Notifiable;
 
     /**
      * Get the attributes that should be cast.

@@ -144,7 +144,10 @@ class AuthenticationTest extends TestCase
                     'name' => $user->name,
                     'email' => $user->email,
                     'email_verified_at' => $user->email_verified_at->toIso8601String(),
-                ]],
+                ],
+                    'permissions' => [],
+                    'branches' => [],
+                ],
             ]);
     }
 

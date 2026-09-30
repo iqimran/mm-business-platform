@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Branch\Http\Middleware\EnsureBranchAccess;
 use App\Modules\Identity\Http\Middleware\EnsureUserIsActive;
 use App\Modules\Shared\Http\ApiExceptionRenderer;
 use Illuminate\Foundation\Application;
@@ -17,7 +18,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum SPA auth: session cookies + CSRF for requests from SANCTUM_STATEFUL_DOMAINS.
         $middleware->statefulApi();
-        $middleware->alias(['active' => EnsureUserIsActive::class]);
+        $middleware->alias([
+            'active' => EnsureUserIsActive::class,
+            'branch.access' => EnsureBranchAccess::class,
+        ]);
         // API-only backend: unauthenticated requests get a 401, never a redirect.
         $middleware->redirectGuestsTo(fn () => null);
     })

@@ -23,6 +23,7 @@ class PermissionSeeder extends Seeder
         'branch.view' => 'View branches',
         'branch.create' => 'Create branches',
         'branch.update' => 'Update branches',
+        'branch.access_all' => 'Access data of all branches (global access)',
         'setting.view' => 'View application settings',
         'setting.update' => 'Update application settings',
         'audit.view' => 'View audit logs',

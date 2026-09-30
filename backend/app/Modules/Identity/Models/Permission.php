@@ -14,6 +14,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 #[UseFactory(PermissionFactory::class)]
 class Permission extends Model
 {
+    /** Mirrors the permissions_name_format_check database constraint. */
+    public const NAME_PATTERN = '/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/';
+
     /** @use HasFactory<PermissionFactory> */
     use HasFactory, HasUlids;
 
