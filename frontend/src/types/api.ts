@@ -5,6 +5,16 @@ export type ApiSuccess<T> = {
   data: T;
 };
 
+export type Paginated<T> = {
+  items: T[];
+  pagination: {
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+  };
+};
+
 export type ApiFailure = {
   success: false;
   message: string;

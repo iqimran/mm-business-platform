@@ -41,8 +41,10 @@ export async function apiRequest<T>(path: string, { method = "GET", body }: Requ
     await fetchCsrfCookie();
   }
 
+  const isForm = body instanceof FormData;
   const headers: Record<string, string> = { Accept: "application/json" };
-  if (body !== undefined) headers["Content-Type"] = "application/json";
+  // FormData sets its own multipart boundary header.
+  if (body !== undefined && !isForm) headers["Content-Type"] = "application/json";
   const xsrf = mutating ? readXsrfToken() : null;
   if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
 
@@ -52,7 +54,7 @@ export async function apiRequest<T>(path: string, { method = "GET", body }: Requ
       method,
       headers,
       credentials: "include",
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
     });
   } catch {
     throw new ApiError("Cannot reach the server. Please check your connection.", 0);

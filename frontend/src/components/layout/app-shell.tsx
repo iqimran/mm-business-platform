@@ -14,7 +14,10 @@ export function AppShell({ session, children }: { session: Session; children: Re
   const pathname = usePathname();
   const logout = useLogout();
   const granted = new Set(session.permissions);
-  const items = navigation.filter((item) => !item.permission || granted.has(item.permission));
+  const sections = navigation
+    .map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || granted.has(item.permission)) }))
+    .filter((section) => section.items.length > 0);
+  const items = sections.flatMap((section) => section.items);
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
@@ -22,20 +25,27 @@ export function AppShell({ session, children }: { session: Session; children: Re
     <div className="flex min-h-svh w-full">
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-muted/30 md:flex">
         <div className="flex h-14 items-center border-b px-4 font-semibold">MM Business</div>
-        <nav aria-label="Main" className="flex flex-1 flex-col gap-1 p-2">
-          {items.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive(item.href) ? "page" : undefined}
-              className={cn(
-                "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                isActive(item.href) && "bg-muted font-medium text-foreground",
-              )}
-            >
-              <item.icon className="size-4" aria-hidden />
-              {item.label}
-            </Link>
+        <nav aria-label="Main" className="flex flex-1 flex-col gap-4 p-2">
+          {sections.map((section, index) => (
+            <div key={section.title ?? index} className="flex flex-col gap-1">
+              {section.title ? (
+                <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{section.title}</div>
+              ) : null}
+              {section.items.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={isActive(item.href) ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                    isActive(item.href) && "bg-muted font-medium text-foreground",
+                  )}
+                >
+                  <item.icon className="size-4" aria-hidden />
+                  {item.label}
+                </Link>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>

@@ -27,6 +27,22 @@ class PermissionSeeder extends Seeder
         'setting.view' => 'View application settings',
         'setting.update' => 'Update application settings',
         'audit.view' => 'View audit logs',
+        'car.view' => 'View cars',
+        'car.create' => 'Create cars',
+        'car.update' => 'Update cars and their images',
+        'car.delete' => 'Delete cars',
+        'car.dealer.view' => 'View car dealers',
+        'car.dealer.create' => 'Create car dealers',
+        'car.dealer.update' => 'Update car dealers',
+        'car.dealer.delete' => 'Delete car dealers',
+        'car.party.view' => 'View car parties (customers)',
+        'car.party.create' => 'Create car parties',
+        'car.party.update' => 'Update car parties',
+        'car.party.delete' => 'Delete car parties',
+        'car.expense_type.view' => 'View car expense types',
+        'car.expense_type.create' => 'Create car expense types',
+        'car.expense_type.update' => 'Update car expense types',
+        'car.expense_type.delete' => 'Delete car expense types',
     ];
 
     public function run(): void

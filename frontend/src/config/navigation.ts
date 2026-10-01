@@ -1,4 +1,4 @@
-import { LayoutDashboard, Settings, ShieldCheck, type LucideIcon } from "lucide-react";
+import { Car, LayoutDashboard, Receipt, Settings, ShieldCheck, Truck, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -8,8 +8,30 @@ export type NavItem = {
   permission?: string;
 };
 
-export const navigation: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/roles", label: "Roles & Permissions", icon: ShieldCheck, permission: "role.view" },
-  { href: "/settings", label: "Settings", icon: Settings, permission: "setting.view" },
+export type NavSection = {
+  title?: string;
+  items: NavItem[];
+};
+
+export const navigation: NavSection[] = [
+  {
+    items: [{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    title: "Car Business",
+    items: [
+      { href: "/cars", label: "Cars", icon: Car, permission: "car.view" },
+      { href: "/car-dealers", label: "Dealers", icon: Truck, permission: "car.dealer.view" },
+      { href: "/car-parties", label: "Parties", icon: Users, permission: "car.party.view" },
+      { href: "/car-expense-types", label: "Expense types", icon: Receipt, permission: "car.expense_type.view" },
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      { href: "/roles", label: "Roles & Permissions", icon: ShieldCheck, permission: "role.view" },
+      { href: "/settings", label: "Settings", icon: Settings, permission: "setting.view" },
+    ],
+  },
 ];
+
