@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Building2, Car, ChefHat, Contact, DatabaseBackup, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, Tags, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, Building2, Car, ChefHat, Contact, DatabaseBackup, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, ShoppingBag, Tags, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -31,6 +31,7 @@ export const navigation: NavSection[] = [
   {
     title: "Restaurant",
     items: [
+      { href: "/restaurant/sales", label: "Food sales", icon: ShoppingBag, permission: "restaurant.sale.view" },
       { href: "/restaurant/menu", label: "Food menu", icon: ChefHat, permission: "restaurant.menu.view" },
       { href: "/restaurant/menu-categories", label: "Menu categories", icon: Tags, permission: "restaurant.menu_category.view" },
       { href: "/restaurant/customers", label: "Customers", icon: Contact, permission: "restaurant.customer.view" },

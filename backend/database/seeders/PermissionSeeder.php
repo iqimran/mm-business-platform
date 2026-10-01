@@ -81,6 +81,11 @@ class PermissionSeeder extends Seeder
         'restaurant.menu.create' => 'Create food menu items',
         'restaurant.menu.update' => 'Update food menu items (incl. price and availability)',
         'restaurant.menu.delete' => 'Delete food menu items',
+        'restaurant.sale.view' => 'View food sales',
+        'restaurant.sale.create' => 'Record food sales',
+        'restaurant.sale.reverse' => 'Reverse (cancel) food sales',
+        'restaurant.sale_payment.create' => 'Record food sale payments',
+        'restaurant.sale_payment.reverse' => 'Reverse (correct) food sale payments',
     ];
 
     public function run(): void

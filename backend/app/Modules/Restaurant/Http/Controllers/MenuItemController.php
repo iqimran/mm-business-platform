@@ -5,6 +5,7 @@ namespace App\Modules\Restaurant\Http\Controllers;
 use App\Http\Controllers\Controller;
 use App\Modules\Restaurant\Http\Requests\MenuItemRequest;
 use App\Modules\Restaurant\Http\Resources\MenuItemResource;
+use App\Modules\Restaurant\Models\FoodSaleItem;
 use App\Modules\Restaurant\Models\MenuItem;
 use App\Modules\Restaurant\Services\MasterRecordService;
 use App\Modules\Shared\Http\ApiResponse;
@@ -70,7 +71,9 @@ class MenuItemController extends Controller
     {
         Gate::authorize(self::PERMISSION.'.delete');
 
-        $this->records->delete($request->user(), $menuItem, self::ENTITY);
+        $this->records->delete($request->user(), $menuItem, self::ENTITY, FoodSaleItem::where('menu_item_id', $menuItem->id)->exists()
+            ? 'This menu item has been sold. Mark it unavailable instead.'
+            : null);
 
         return ApiResponse::success(message: 'Menu item deleted successfully.');
     }
