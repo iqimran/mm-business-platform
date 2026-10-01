@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions } from "@/features/auth/hooks";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 import type { MasterFilters, MasterRecord } from "../api";
 import type { MasterResource } from "../config";
@@ -24,7 +25,8 @@ export function MasterDataPage({ resource }: { resource: MasterResource }) {
   const [filters, setFilters] = useState<MasterFilters>({ page: 1, search: "", active: "" });
   const [editing, setEditing] = useState<Editing>(null);
   const [actionError, setActionError] = useState<string>();
-  const records = useMasterRecords(resource, filters);
+  const search = useDebouncedValue(filters.search);
+  const records = useMasterRecords(resource, { ...filters, search });
   const remove = useDeleteRecord(resource);
 
   const canCreate = can(`${resource.permission}.create`);

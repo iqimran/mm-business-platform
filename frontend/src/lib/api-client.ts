@@ -107,3 +107,30 @@ export async function apiDownload(path: string, fallbackName: string): Promise<v
   link.remove();
   URL.revokeObjectURL(url);
 }
+
+/**
+ * Opens an API-generated PDF (receipt, voucher) in a new tab for viewing/printing.
+ * The tab is opened synchronously on the click (avoids pop-up blockers), then filled.
+ */
+export async function apiOpenPdf(path: string): Promise<void> {
+  const tab = window.open("", "_blank");
+  if (tab) tab.document.title = "Loading…";
+
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", headers: { Accept: "application/pdf" } });
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as ApiFailure | null;
+      throw new ApiError(payload?.message ?? "The document could not be generated.", response.status);
+    }
+    const url = URL.createObjectURL(await response.blob());
+    if (tab) {
+      tab.location.href = url;
+    } else {
+      window.location.assign(url); // pop-ups blocked: open in this tab instead
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (error) {
+    tab?.close();
+    throw error instanceof ApiError ? error : new ApiError("Cannot reach the server. Please check your connection.", 0);
+  }
+}

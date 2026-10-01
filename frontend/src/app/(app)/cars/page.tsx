@@ -13,13 +13,16 @@ import { usePermissions, useSession } from "@/features/auth/hooks";
 import { carStatuses, carStatusLabels, type CarFilters } from "@/features/cars/api";
 import { CarStatusBadge } from "@/features/cars/components/car-status-badge";
 import { useCars } from "@/features/cars/hooks";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 
 export default function CarsPage() {
   const { can } = usePermissions();
   const { data: session } = useSession();
   const [filters, setFilters] = useState<CarFilters>({ page: 1, search: "", status: "", branchId: "" });
-  const cars = useCars(filters);
+  // Typing updates the box immediately; the request waits for a pause in typing.
+  const search = useDebouncedValue(filters.search);
+  const cars = useCars({ ...filters, search });
   const branches = session?.branches ?? [];
 
   if (!can("car.view")) return <Forbidden />;

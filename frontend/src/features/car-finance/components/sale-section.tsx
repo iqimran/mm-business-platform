@@ -4,7 +4,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { NativeSelect } from "@/components/common/native-select";
 import { FieldError, FormAlert } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +13,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/features/auth/hooks";
 import { partyResource } from "@/features/car-master/config";
-import { useActiveOptions } from "@/features/car-master/hooks";
+import { MasterRecordField } from "@/features/car-master/components/master-record-field";
 import type { CarStatus } from "@/features/cars/api";
 import { applyApiErrors, errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
+import { printPartyReceipt } from "../api";
 import { useRecordPartyPayment, useRecordSale, useReversePartyPayment, useReverseSale, useSale } from "../hooks";
 import { saleSchema, today, type SaleValues } from "../schemas";
 import { PaymentForm, PaymentsTable, Position } from "./payments";
@@ -27,9 +27,9 @@ const SELLABLE: CarStatus[] = ["IN_STOCK", "PREPARATION", "READY_FOR_SALE"];
 
 function SaleForm({ carId, onDone }: { carId: string; onDone: () => void }) {
   const record = useRecordSale(carId);
-  const parties = useActiveOptions(partyResource);
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -53,16 +53,14 @@ function SaleForm({ carId, onDone }: { carId: string; onDone: () => void }) {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="sale-party">Party (customer)</Label>
-          <NativeSelect id="sale-party" aria-invalid={errors.party_id ? true : undefined} {...register("party_id")}>
-            <option value="">Select a party…</option>
-            {(parties.data ?? []).map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-                {p.phone ? ` (${p.phone})` : ""}
-              </option>
-            ))}
-          </NativeSelect>
-          {parties.isError ? <p className="text-xs text-destructive">Cannot load parties: {errorMessage(parties.error)}</p> : null}
+          <MasterRecordField
+            control={control}
+            name="party_id"
+            resource={partyResource}
+            id="sale-party"
+            placeholder="Search customer by name, phone or NID…"
+            invalid={!!errors.party_id}
+          />
           <FieldError id="sale-party-error" message={errors.party_id?.message} />
         </div>
         <div className="flex flex-col gap-2">
@@ -199,6 +197,8 @@ export function SaleSection({ carId, status }: { carId: string; status: CarStatu
                 payments={data.payments}
                 canReverse={can("car.payment.reverse") && !completed}
                 onReverse={(id, reason) => reversePayment.mutateAsync({ id, reason })}
+                onPrint={(id) => printPartyReceipt(carId, id)}
+                printLabel="Receipt"
               />
             ) : null}
 

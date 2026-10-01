@@ -14,6 +14,7 @@ use App\Modules\Car\Http\Controllers\DealerPaymentController;
 use App\Modules\Car\Http\Controllers\DocumentExpiryController;
 use App\Modules\Car\Http\Controllers\ExpenseTypeController;
 use App\Modules\Car\Http\Controllers\PartyController;
+use App\Modules\Car\Http\Controllers\PaymentSlipController;
 use Illuminate\Support\Facades\Route;
 
 // Mounted under /api/v1. Authorization: CarPolicy (permission + branch) and permission gates.
@@ -43,6 +44,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('cars/{car}/dealer-payments', [DealerPaymentController::class, 'store'])->name('cars.dealer-payments.store');
         Route::post('cars/{car}/dealer-payments/{dealerPayment}/reverse', [DealerPaymentController::class, 'reverse'])->name('cars.dealer-payments.reverse');
         Route::post('cars/{car}/status', [CarStatusController::class, 'update'])->name('cars.status.update');
+
+        // Printable slips (PDF): customer money receipt / dealer payment voucher.
+        Route::get('cars/{car}/party-payments/{partyPayment}/receipt', [PaymentSlipController::class, 'partyReceipt'])->name('cars.party-payments.receipt');
+        Route::get('cars/{car}/dealer-payments/{dealerPayment}/voucher', [PaymentSlipController::class, 'dealerVoucher'])->name('cars.dealer-payments.voucher');
 
         // Compliance documents (fitness, tax token, insurance, route permit, other).
         Route::get('cars/{car}/documents', [CarDocumentController::class, 'index'])->name('cars.documents.index');

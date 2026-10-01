@@ -1,4 +1,5 @@
 import { apiRequest } from "@/lib/api-client";
+import type { Paginated } from "@/types/api";
 
 export type Role = {
   id: string;
@@ -24,8 +25,13 @@ export type RoleInput = {
   permissions: string[];
 };
 
-type Paginated<T> = { items: T[]; pagination: { total: number } };
 
+/** One page of roles (Roles page). */
+export function fetchRolesPage(page: number) {
+  return apiRequest<Paginated<Role>>(`/roles?page=${page}&per_page=25`);
+}
+
+/** All roles for assignment pickers (a small catalog). */
 export async function fetchRoles(): Promise<Role[]> {
   return (await apiRequest<Paginated<Role>>("/roles?per_page=100")).items;
 }

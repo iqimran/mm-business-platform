@@ -30,6 +30,8 @@ trait BelongsToBranch
             return $query;
         }
 
-        return $query->whereIn($column, $user->assignedActiveBranchIdsQuery());
+        // A literal ID list (a user has few branches) lets PostgreSQL use the
+        // (branch_id, created_at) index in order; a subquery forces a full index walk.
+        return $query->whereIn($column, $user->accessibleBranchIds()->all());
     }
 }

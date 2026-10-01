@@ -13,6 +13,7 @@ import { usePermissions } from "@/features/auth/hooks";
 import type { Branch, BranchFilters } from "@/features/branches/api";
 import { BranchForm } from "@/features/branches/components/branch-form";
 import { useBranches, useSaveBranch } from "@/features/branches/hooks";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 
 /** null = closed, "" = new branch, otherwise the id being edited. */
@@ -23,7 +24,8 @@ export default function BranchesPage() {
   const [filters, setFilters] = useState<BranchFilters>({ page: 1, search: "", active: "" });
   const [editing, setEditing] = useState<Editing>(null);
   const [error, setError] = useState<string>();
-  const branches = useBranches(filters);
+  const search = useDebouncedValue(filters.search);
+  const branches = useBranches({ ...filters, search });
   const save = useSaveBranch();
 
   if (!can("branch.view")) return <Forbidden />;

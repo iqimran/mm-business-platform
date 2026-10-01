@@ -36,7 +36,28 @@ export function deleteRecord(resource: MasterResource, id: string) {
   return apiRequest<Record<string, never>>(`/${resource.path}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-/** Active records for pickers (e.g. dealer selection on the car form). */
-export async function fetchActiveOptions(resource: MasterResource) {
-  return (await apiRequest<Paginated<MasterRecord>>(`/${resource.path}?is_active=1&per_page=100`)).items;
+/** Server-side search for pickers: a few active matches, never the whole table. */
+export async function searchActive(resource: MasterResource, term: string) {
+  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
+  if (term) params.set("search", term);
+
+  return (await apiRequest<Paginated<MasterRecord>>(`/${resource.path}?${params}`)).items.map((r) => ({
+    id: r.id,
+    label: String(r.name),
+    hint: [r.phone, r.national_id].filter(Boolean).join(" · ") || undefined,
+  }));
+}
+
+/**
+ * Small catalogs (e.g. expense types) for dropdowns: loads every page, so nothing is silently cut off.
+ * Bounded to 1,000 records as a safety net; large lists must use a searchable picker instead.
+ */
+export async function fetchAllActive(resource: MasterResource) {
+  const all: MasterRecord[] = [];
+  for (let page = 1; page <= 10; page++) {
+    const result = await apiRequest<Paginated<MasterRecord>>(`/${resource.path}?is_active=1&per_page=100&page=${page}`);
+    all.push(...result.items);
+    if (page >= result.pagination.last_page) break;
+  }
+  return all;
 }

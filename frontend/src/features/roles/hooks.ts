@@ -1,13 +1,17 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { sessionQueryKey } from "@/features/auth/hooks";
-import { createRole, deleteRole, fetchPermissionCatalog, fetchRole, fetchRoles, updateRole, type RoleInput } from "./api";
+import { createRole, deleteRole, fetchPermissionCatalog, fetchRole, fetchRoles, fetchRolesPage, updateRole, type RoleInput } from "./api";
 
 const rolesKey = ["roles"] as const;
 
 export function useRoles() {
   return useQuery({ queryKey: rolesKey, queryFn: fetchRoles });
+}
+
+export function useRolesPage(page: number) {
+  return useQuery({ queryKey: [...rolesKey, "page", page], queryFn: () => fetchRolesPage(page), placeholderData: keepPreviousData });
 }
 
 export function useRole(id: string) {

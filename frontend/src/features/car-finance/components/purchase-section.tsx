@@ -3,7 +3,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { NativeSelect } from "@/components/common/native-select";
 import { FieldError, FormAlert } from "@/components/common/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions } from "@/features/auth/hooks";
 import { dealerResource } from "@/features/car-master/config";
-import { useActiveOptions } from "@/features/car-master/hooks";
+import { MasterRecordField } from "@/features/car-master/components/master-record-field";
 import { applyApiErrors, errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { Purchase } from "../api";
@@ -22,17 +21,17 @@ import { purchaseSchema, today, type PurchaseValues } from "../schemas";
 import { DealerPayments } from "./dealer-payments";
 import { ReverseButton } from "./reverse-button";
 
-function PurchaseForm({ carId, defaultDealerId, onDone }: { carId: string; defaultDealerId?: string; onDone: () => void }) {
+function PurchaseForm({ carId, defaultDealer, onDone }: { carId: string; defaultDealer?: { id: string; name: string } | null; onDone: () => void }) {
   const record = useRecordPurchase(carId);
-  const dealers = useActiveOptions(dealerResource);
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<PurchaseValues>({
     resolver: zodResolver(purchaseSchema),
-    defaultValues: { dealer_id: defaultDealerId ?? "", purchase_date: today(), amount: "", reference: "", notes: "" },
+    defaultValues: { dealer_id: defaultDealer?.id ?? "", purchase_date: today(), amount: "", reference: "", notes: "" },
   });
 
   const submit = handleSubmit(async (v) => {
@@ -50,14 +49,15 @@ function PurchaseForm({ carId, defaultDealerId, onDone }: { carId: string; defau
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-2">
           <Label htmlFor="purchase-dealer">Dealer</Label>
-          <NativeSelect id="purchase-dealer" aria-invalid={errors.dealer_id ? true : undefined} {...register("dealer_id")}>
-            <option value="">Select a dealer…</option>
-            {(dealers.data ?? []).map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </NativeSelect>
+          <MasterRecordField
+            control={control}
+            name="dealer_id"
+            resource={dealerResource}
+            id="purchase-dealer"
+            initial={defaultDealer ? { id: defaultDealer.id, label: defaultDealer.name } : null}
+            placeholder="Search dealer by name or phone…"
+            invalid={!!errors.dealer_id}
+          />
           <FieldError id="purchase-dealer-error" message={errors.dealer_id?.message} />
         </div>
         <div className="flex flex-col gap-2">
@@ -124,7 +124,7 @@ function PurchaseDetails({ purchase }: { purchase: Purchase }) {
   );
 }
 
-export function PurchaseSection({ carId, carDealerId, carSold }: { carId: string; carDealerId?: string; carSold: boolean }) {
+export function PurchaseSection({ carId, carDealer, carSold }: { carId: string; carDealer?: { id: string; name: string } | null; carSold: boolean }) {
   const { can } = usePermissions();
   const canView = can("car.purchase.view");
   const purchase = usePurchase(carId, canView);
@@ -161,7 +161,7 @@ export function PurchaseSection({ carId, carDealerId, carSold }: { carId: string
           </div>
         ) : null}
 
-        {recording && !active ? <PurchaseForm carId={carId} defaultDealerId={carDealerId} onDone={() => setRecording(false)} /> : null}
+        {recording && !active ? <PurchaseForm carId={carId} defaultDealer={carDealer} onDone={() => setRecording(false)} /> : null}
 
         {reversed.length > 0 ? (
           <details className="text-sm">

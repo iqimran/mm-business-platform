@@ -15,7 +15,7 @@ Real PostgreSQL backups made with `pg_dump` (plain SQL). Use this guide to find,
 | Storage | Laravel filesystem disk `backups` (`config/filesystems.php`), private, never web-served |
 | Directory | `${BACKUP_PATH}/database/` |
 | Local default | `backend/storage/app/backups/database/` on the host (bind-mounted into the containers) |
-| File name | `database-YYYY-MM-DD-HHmmss-<8 random chars>.sql`, e.g. `database-2026-10-01-180500-pilv7yl9.sql` (UTC time) |
+| File name | `database-YYYY-MM-DD-HHmmss-<8 random chars>.sql`, e.g. `database-2026-10-01-180500-pilv7yl9.sql` (application time zone, `APP_TIMEZONE`; files made before 2 Oct 2026 used UTC) |
 | File permissions | `0600` files, `0700` directories (owner only) |
 | Metadata | table `database_backups` (status, size, SHA-256 checksum, who/when) |
 

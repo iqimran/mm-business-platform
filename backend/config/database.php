@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // Same timezone as the application, so timestamps written without an offset are
+            // interpreted correctly by timestamptz columns (stored instants stay UTC-correct).
+            'timezone' => env('APP_TIMEZONE', 'UTC'),
         ],
 
         'sqlsrv' => [

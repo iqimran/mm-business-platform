@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/features/auth/hooks";
 import { errorMessage } from "@/lib/form-errors";
+import { printDealerVoucher } from "../api";
 import { useDealerPayments, useRecordDealerPayment, useReverseDealerPayment } from "../hooks";
 import { PaymentForm, PaymentsTable, Position } from "./payments";
 
@@ -58,6 +59,8 @@ export function DealerPayments({ carId }: { carId: string }) {
           payments={payments.data.items}
           canReverse={can("car.dealer_payment.reverse")}
           onReverse={(id, reason) => reverse.mutateAsync({ id, reason })}
+          onPrint={(id) => printDealerVoucher(carId, id)}
+          printLabel="Voucher"
         />
       ) : null}
     </div>

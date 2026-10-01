@@ -25,6 +25,23 @@ class SchemaConstraintsTest extends TestCase
         $this->assertSame('mm_platform_test', DB::connection()->getDatabaseName());
     }
 
+    public function test_list_search_and_sort_indexes_exist(): void
+    {
+        $indexes = collect(DB::select("select indexname, indexdef from pg_indexes where schemaname = 'public'"))->pluck('indexdef', 'indexname');
+
+        // Trigram GIN indexes back ILIKE '%term%' searches on large lists.
+        foreach (['cars_brand_trgm', 'cars_model_trgm', 'cars_chassis_number_trgm', 'cars_registration_number_trgm',
+            'car_parties_name_trgm', 'car_parties_phone_trgm', 'car_parties_national_id_trgm',
+            'car_dealers_name_trgm', 'car_dealers_phone_trgm', 'users_name_trgm', 'users_email_trgm'] as $name) {
+            $this->assertArrayHasKey($name, $indexes->all(), $name);
+            $this->assertStringContainsString('gin_trgm_ops', $indexes[$name]);
+        }
+
+        // Default car list order (newest first), globally and per branch.
+        $this->assertArrayHasKey('cars_created_at_id_index', $indexes->all());
+        $this->assertArrayHasKey('cars_branch_created_at_id_index', $indexes->all());
+    }
+
     public function test_models_use_ulid_primary_keys(): void
     {
         $user = User::factory()->create();

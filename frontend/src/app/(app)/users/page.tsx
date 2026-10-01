@@ -13,12 +13,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { usePermissions } from "@/features/auth/hooks";
 import type { UserFilters } from "@/features/users/api";
 import { useAssignmentOptions, useUsers } from "@/features/users/hooks";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 
 export default function UsersPage() {
   const { can } = usePermissions();
   const [filters, setFilters] = useState<UserFilters>({ page: 1, search: "", active: "", roleId: "", branchId: "" });
-  const users = useUsers(filters);
+  const search = useDebouncedValue(filters.search);
+  const users = useUsers({ ...filters, search });
   const options = useAssignmentOptions();
 
   if (!can("user.view")) return <Forbidden />;

@@ -131,7 +131,7 @@ export default function CarPage() {
 
       <FinancialSummaryCard carId={data.id} />
       <DocumentsSection carId={data.id} />
-      <PurchaseSection carId={data.id} carDealerId={data.dealer?.id} carSold={data.status === "SOLD" || data.status === "COMPLETED"} />
+      <PurchaseSection carId={data.id} carDealer={data.dealer} carSold={data.status === "SOLD" || data.status === "COMPLETED"} />
       <ExpensesSection carId={data.id} carCompleted={data.status === "COMPLETED"} />
       <SaleSection carId={data.id} status={data.status} />
 

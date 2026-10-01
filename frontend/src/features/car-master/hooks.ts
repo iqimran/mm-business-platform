@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createRecord, deleteRecord, fetchActiveOptions, fetchRecords, updateRecord, type MasterFilters } from "./api";
+import { createRecord, deleteRecord, fetchAllActive, fetchRecords, updateRecord, type MasterFilters } from "./api";
 import type { MasterResource } from "./config";
 
 export function useMasterRecords(resource: MasterResource, filters: MasterFilters) {
@@ -15,7 +15,7 @@ export function useMasterRecords(resource: MasterResource, filters: MasterFilter
 export function useActiveOptions(resource: MasterResource, enabled = true) {
   return useQuery({
     queryKey: [resource.path, "active-options"],
-    queryFn: () => fetchActiveOptions(resource),
+    queryFn: () => fetchAllActive(resource),
     enabled,
     staleTime: 60_000,
   });

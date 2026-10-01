@@ -10,8 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { usePermissions, useSession } from "@/features/auth/hooks";
+import { MasterRecordField } from "@/features/car-master/components/master-record-field";
 import { dealerResource } from "@/features/car-master/config";
-import { useActiveOptions } from "@/features/car-master/hooks";
 import { applyApiErrors } from "@/lib/form-errors";
 import type { Car, CarInput } from "../api";
 import { carSchema, toCarFormValues, toCarInput, type CarFormValues } from "../schemas";
@@ -40,10 +40,10 @@ export function CarForm({ car, submitLabel, onSubmit, onCancel }: CarFormProps) 
   const { can } = usePermissions();
   const branches = session?.branches ?? [];
   const canPickDealer = can("car.dealer.view");
-  const dealers = useActiveOptions(dealerResource, canPickDealer);
 
   const {
     register,
+    control,
     handleSubmit,
     setError,
     formState: { errors, isSubmitting },
@@ -60,11 +60,6 @@ export function CarForm({ car, submitLabel, onSubmit, onCancel }: CarFormProps) 
     }
   });
 
-  // Keep the current (possibly inactive) dealer selectable when editing.
-  const dealerOptions = [...(dealers.data ?? [])];
-  if (car?.dealer && !dealerOptions.some((d) => d.id === car.dealer?.id)) {
-    dealerOptions.unshift({ id: car.dealer.id, name: `${car.dealer.name} (inactive)`, is_active: false });
-  }
 
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-6">
@@ -92,14 +87,15 @@ export function CarForm({ car, submitLabel, onSubmit, onCancel }: CarFormProps) 
           {canPickDealer ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="car-dealer">Dealer</Label>
-              <NativeSelect id="car-dealer" aria-invalid={errors.dealer_id ? true : undefined} {...register("dealer_id")}>
-                <option value="">No dealer</option>
-                {dealerOptions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </NativeSelect>
+              <MasterRecordField
+                control={control}
+                name="dealer_id"
+                resource={dealerResource}
+                id="car-dealer"
+                initial={car?.dealer ? { id: car.dealer.id, label: car.dealer.name } : null}
+                placeholder="Search dealer by name or phone (optional)…"
+                invalid={!!errors.dealer_id}
+              />
               <FieldError id="car-dealer-error" message={errors.dealer_id?.message} />
             </div>
           ) : null}

@@ -3,6 +3,8 @@
 namespace App\Modules\Car\Services;
 
 use App\Modules\Car\Models\Car;
+use App\Modules\Car\Models\CarDealerPayment;
+use App\Modules\Car\Models\CarPartyPayment;
 use App\Modules\Car\Models\CarPurchase;
 use App\Modules\Car\Models\CarSale;
 use App\Modules\Car\Support\CarFinancialSnapshot;
@@ -60,6 +62,41 @@ class CarFinancials
     public function dealerOutstanding(CarPurchase $purchase): int
     {
         return FinancialFormulas::dealerPayable($purchase->amount_minor, $this->dealerPaid($purchase));
+    }
+
+    // ---- Position as of a specific payment (receipts / vouchers) ----
+
+    /**
+     * Party position right after this payment: active payments of the same sale recorded up to and
+     * including it (recording order). Used for printed receipts.
+     *
+     * @return array{obligation: int, paid_to_date: int, outstanding: int}
+     */
+    public function partyPositionAt(CarPartyPayment $payment): array
+    {
+        $sale = $payment->sale;
+        $paid = $this->sumUpTo($sale->payments()->active(), $payment);
+
+        return ['obligation' => $sale->amount_minor, 'paid_to_date' => $paid, 'outstanding' => FinancialFormulas::partyDue($sale->amount_minor, $paid)];
+    }
+
+    /**
+     * @return array{obligation: int, paid_to_date: int, outstanding: int}
+     */
+    public function dealerPositionAt(CarDealerPayment $payment): array
+    {
+        $purchase = $payment->purchase;
+        $paid = $this->sumUpTo($purchase->payments()->active(), $payment);
+
+        return ['obligation' => $purchase->amount_minor, 'paid_to_date' => $paid, 'outstanding' => FinancialFormulas::dealerPayable($purchase->amount_minor, $paid)];
+    }
+
+    private function sumUpTo($activePayments, CarPartyPayment|CarDealerPayment $payment): int
+    {
+        return (int) $activePayments
+            ->where(fn ($q) => $q->where('created_at', '<', $payment->created_at)
+                ->orWhere(fn ($q) => $q->where('created_at', $payment->created_at)->where('id', '<=', $payment->id)))
+            ->sum('amount_minor');
     }
 
     // ---- Full position ----

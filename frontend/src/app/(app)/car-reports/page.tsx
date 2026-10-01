@@ -17,6 +17,7 @@ import { expenseTypeResource } from "@/features/car-master/config";
 import { useActiveOptions } from "@/features/car-master/hooks";
 import { carStatuses, carStatusLabels } from "@/features/cars/api";
 import { CarPicker, type PickedCar } from "@/features/cars/components/car-picker";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 
 type ExportFormat = "xlsx" | "pdf";
@@ -66,6 +67,7 @@ export default function CarReportsPage() {
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string>();
 
+  const debouncedSearch = useDebouncedValue(filters.search);
   const usesMonth = !!config?.filters.includes("month") && filters.month !== "";
   const expenseTypes = useActiveOptions(expenseTypeResource, can("car.expense_type.view"));
 
@@ -82,7 +84,7 @@ export default function CarReportsPage() {
     state: config?.filters.includes("state") ? filters.state : undefined,
     status: config?.filters.includes("status") ? filters.status : undefined,
     settled: config?.filters.includes("settled") ? filters.settled : undefined,
-    search: config?.filters.includes("search") ? filters.search : undefined,
+    search: config?.filters.includes("search") ? debouncedSearch : undefined,
     group: grouped ? filters.group : undefined,
     sort: sort?.sort,
     direction: sort?.direction,

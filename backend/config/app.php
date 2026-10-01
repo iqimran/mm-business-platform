@@ -68,7 +68,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // Business timezone: "today", date validation, schedules and file names use it.
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
 
     /*
     |--------------------------------------------------------------------------
