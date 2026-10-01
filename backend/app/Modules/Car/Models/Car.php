@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 #[Fillable([
     'branch_id', 'dealer_id', 'brand', 'model', 'model_year', 'color',
-    'chassis_number', 'engine_number', 'registration_number', 'mileage_km', 'notes',
+    'chassis_number', 'engine_number', 'registration_number', 'registration_date', 'mileage_km', 'notes',
 ])]
 #[UseFactory(CarFactory::class)]
 #[UsePolicy(CarPolicy::class)]
@@ -41,6 +41,7 @@ class Car extends Model
             'status' => CarStatus::class,
             'model_year' => 'integer',
             'mileage_km' => 'integer',
+            'registration_date' => 'date',
         ];
     }
 
@@ -62,6 +63,26 @@ class Car extends Model
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(CarDealer::class, 'dealer_id');
+    }
+
+    public function purchases(): HasMany
+    {
+        return $this->hasMany(CarPurchase::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(CarExpense::class);
+    }
+
+    public function documents(): HasMany
+    {
+        return $this->hasMany(CarDocument::class);
+    }
+
+    public function hasFinancialRecords(): bool
+    {
+        return $this->purchases()->exists() || $this->expenses()->exists();
     }
 
     public function images(): HasMany

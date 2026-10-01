@@ -35,4 +35,58 @@ class CarPolicy extends BranchScopedPolicy
     {
         return $this->allows($user, 'car.delete', $car);
     }
+
+    // Financial records: permission + access to the car's branch.
+
+    public function viewPurchase(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.purchase.view', $car);
+    }
+
+    public function recordPurchase(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.purchase.create', $car);
+    }
+
+    public function reversePurchase(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.purchase.reverse', $car);
+    }
+
+    public function viewExpenses(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.expense.view', $car);
+    }
+
+    public function recordExpense(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.expense.create', $car);
+    }
+
+    public function reverseExpense(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.expense.reverse', $car);
+    }
+
+    // Compliance documents (fitness, tax token, insurance, ...).
+
+    public function viewDocuments(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.document.view', $car);
+    }
+
+    public function addDocument(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.document.create', $car);
+    }
+
+    public function updateDocument(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.document.update', $car);
+    }
+
+    public function deleteDocument(User $user, Car $car): bool
+    {
+        return $this->allows($user, 'car.document.delete', $car);
+    }
 }

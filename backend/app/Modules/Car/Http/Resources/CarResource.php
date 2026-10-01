@@ -24,6 +24,7 @@ class CarResource extends JsonResource
             'chassis_number' => $this->chassis_number,
             'engine_number' => $this->engine_number,
             'registration_number' => $this->registration_number,
+            'registration_date' => $this->registration_date?->toDateString(),
             'mileage_km' => $this->mileage_km,
             'status' => $this->status->value,
             'notes' => $this->notes,

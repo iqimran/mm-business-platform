@@ -43,6 +43,16 @@ class PermissionSeeder extends Seeder
         'car.expense_type.create' => 'Create car expense types',
         'car.expense_type.update' => 'Update car expense types',
         'car.expense_type.delete' => 'Delete car expense types',
+        'car.purchase.view' => 'View car purchases',
+        'car.purchase.create' => 'Record car purchases',
+        'car.purchase.reverse' => 'Reverse (correct) car purchases',
+        'car.expense.view' => 'View car expenses',
+        'car.expense.create' => 'Record car expenses',
+        'car.expense.reverse' => 'Reverse (correct) car expenses',
+        'car.document.view' => 'View car documents and expiry alerts',
+        'car.document.create' => 'Add car documents (fitness, tax token, ...)',
+        'car.document.update' => 'Update car documents',
+        'car.document.delete' => 'Delete car documents',
     ];
 
     public function run(): void

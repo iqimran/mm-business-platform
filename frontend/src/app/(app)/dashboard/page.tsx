@@ -3,6 +3,7 @@
 import { PageHeader } from "@/components/common/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSession } from "@/features/auth/hooks";
+import { ExpiryAlertCard } from "@/features/car-documents/components/expiry-alert-card";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -12,6 +13,8 @@ export default function DashboardPage() {
   return (
     <>
       <PageHeader title={`Welcome, ${session.user.name}`} description="Your access in this platform." />
+
+      <ExpiryAlertCard />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>

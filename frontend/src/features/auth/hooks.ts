@@ -11,7 +11,9 @@ export function useSession() {
     queryKey: sessionQueryKey,
     queryFn: fetchSession,
     retry: false,
-    staleTime: 60_000,
+    staleTime: 30_000,
+    // Permission/role changes made by an admin show up when the user returns to the tab.
+    refetchOnWindowFocus: true,
   });
 }
 

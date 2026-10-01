@@ -7,6 +7,7 @@ use App\Modules\Car\Models\Car;
 use App\Modules\Identity\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 /**
  * Updates descriptive car data. Status is never changed here (lifecycle actions only).
@@ -18,6 +19,11 @@ class UpdateCar
 
     public function handle(User $actor, Car $car, array $data): Car
     {
+        // Financial records belong to the branch they were recorded in; moving the car would split its history.
+        if (isset($data['branch_id']) && $data['branch_id'] !== $car->branch_id && $car->hasFinancialRecords()) {
+            throw ValidationException::withMessages(['branch_id' => 'Cars with financial records cannot be moved to another branch.']);
+        }
+
         return DB::transaction(function () use ($actor, $car, $data) {
             $car->fill(Arr::except($data, ['status']));
             $changed = array_keys(Arr::except($car->getDirty(), ['updated_at']));

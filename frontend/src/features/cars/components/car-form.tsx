@@ -31,6 +31,7 @@ const textFields = [
   { name: "chassis_number", label: "Chassis number", required: true, hint: "Stored in uppercase without spaces." },
   { name: "engine_number", label: "Engine number" },
   { name: "registration_number", label: "Registration number" },
+  { name: "registration_date", label: "Registration date", inputType: "date" },
   { name: "mileage_km", label: "Mileage (km)", inputMode: "numeric" },
 ] as const;
 
@@ -121,6 +122,7 @@ export function CarForm({ car, submitLabel, onSubmit, onCancel }: CarFormProps) 
                 </Label>
                 <Input
                   id={id}
+                  type={"inputType" in field ? field.inputType : "text"}
                   inputMode={"inputMode" in field ? field.inputMode : undefined}
                   aria-invalid={message ? true : undefined}
                   {...register(field.name)}

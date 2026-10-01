@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePermissions } from "@/features/auth/hooks";
 import type { Car } from "@/features/cars/api";
+import { DocumentsSection } from "@/features/car-documents/components/documents-section";
+import { ExpensesSection } from "@/features/car-finance/components/expenses-section";
+import { PurchaseSection } from "@/features/car-finance/components/purchase-section";
 import { CarForm } from "@/features/cars/components/car-form";
 import { CarImages } from "@/features/cars/components/car-images";
 import { CarStatusBadge } from "@/features/cars/components/car-status-badge";
@@ -24,6 +27,7 @@ function Details({ car }: { car: Car }) {
     ["Chassis number", car.chassis_number],
     ["Engine number", car.engine_number],
     ["Registration number", car.registration_number],
+    ["Registration date", car.registration_date],
     ["Mileage", car.mileage_km != null ? `${car.mileage_km.toLocaleString()} km` : null],
   ];
 
@@ -119,6 +123,10 @@ export default function CarPage() {
       ) : (
         <Details car={data} />
       )}
+
+      <DocumentsSection carId={data.id} />
+      <PurchaseSection carId={data.id} carDealerId={data.dealer?.id} carSold={data.status === "SOLD" || data.status === "COMPLETED"} />
+      <ExpensesSection carId={data.id} carCompleted={data.status === "COMPLETED"} />
 
       <CarImages car={data} canEdit={canUpdate} />
 

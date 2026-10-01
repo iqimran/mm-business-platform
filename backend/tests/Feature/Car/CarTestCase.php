@@ -45,6 +45,17 @@ abstract class CarTestCase extends TestCase
         return $user;
     }
 
+    protected const FINANCE_PERMISSIONS = [
+        'car.view', 'car.purchase.view', 'car.purchase.create', 'car.purchase.reverse',
+        'car.expense.view', 'car.expense.create', 'car.expense.reverse',
+    ];
+
+    /** Car finance user for branch A only. */
+    protected function financeA(): User
+    {
+        return $this->userWith(self::FINANCE_PERMISSIONS, [$this->branchA]);
+    }
+
     /** Car manager for branch A only. */
     protected function managerA(array $extra = []): User
     {

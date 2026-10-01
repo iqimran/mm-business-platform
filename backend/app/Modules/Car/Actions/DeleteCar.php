@@ -25,6 +25,11 @@ class DeleteCar
             throw new ConflictHttpException('Sold cars cannot be deleted.');
         }
 
+        // Financial history (even reversed) must be preserved; foreign keys enforce this too.
+        if ($car->hasFinancialRecords()) {
+            throw new ConflictHttpException('Cars with purchase or expense records cannot be deleted.');
+        }
+
         $files = $car->images()->get(['disk', 'path']);
 
         DB::transaction(function () use ($actor, $car) {

@@ -35,6 +35,7 @@ export type Car = {
   chassis_number: string;
   engine_number: string | null;
   registration_number: string | null;
+  registration_date: string | null;
   mileage_km: number | null;
   status: CarStatus;
   notes: string | null;
@@ -54,6 +55,7 @@ export type CarInput = {
   chassis_number: string;
   engine_number: string | null;
   registration_number: string | null;
+  registration_date: string | null;
   mileage_km: number | null;
   notes: string | null;
 };

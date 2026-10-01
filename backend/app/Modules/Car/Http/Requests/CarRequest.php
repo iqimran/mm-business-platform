@@ -60,6 +60,7 @@ class CarRequest extends FormRequest
             'chassis_number' => [$required, 'string', 'max:50', Rule::unique('cars', 'chassis_number')->ignore($car)],
             'engine_number' => ['sometimes', 'nullable', 'string', 'max:50', Rule::unique('cars', 'engine_number')->ignore($car)],
             'registration_number' => ['sometimes', 'nullable', 'string', 'max:30', Rule::unique('cars', 'registration_number')->ignore($car)],
+            'registration_date' => ['sometimes', 'nullable', 'date_format:Y-m-d', 'after_or_equal:1950-01-01', 'before_or_equal:today'],
             'mileage_km' => ['sometimes', 'nullable', 'integer', 'min:0', 'max:2000000'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
             // Lifecycle changes happen only through explicit business actions.

@@ -3,6 +3,11 @@ import type { Car, CarInput } from "./api";
 
 const maxYear = new Date().getFullYear() + 1;
 
+const localToday = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
 const optionalText = (label: string, max: number) => z.string().trim().max(max, `${label} must be at most ${max} characters.`);
 
 const optionalWholeNumber = (min: number, max: number, message: string) =>
@@ -22,6 +27,7 @@ export const carSchema = z.object({
   chassis_number: z.string().trim().min(1, "Chassis number is required.").max(50, "Chassis number must be at most 50 characters."),
   engine_number: optionalText("Engine number", 50),
   registration_number: optionalText("Registration number", 30),
+  registration_date: z.string().refine((v) => v === "" || v <= localToday(), "Registration date cannot be in the future."),
   mileage_km: optionalWholeNumber(0, 2_000_000, "Enter a valid mileage."),
   notes: optionalText("Notes", 5000),
 });
@@ -41,6 +47,7 @@ export function toCarInput(values: CarFormValues): CarInput {
     chassis_number: values.chassis_number,
     engine_number: orNull(values.engine_number),
     registration_number: orNull(values.registration_number),
+    registration_date: orNull(values.registration_date),
     mileage_km: values.mileage_km === "" ? null : Number(values.mileage_km),
     notes: orNull(values.notes),
   };
@@ -57,6 +64,7 @@ export function toCarFormValues(car: Car | undefined, defaultBranchId: string): 
     chassis_number: car?.chassis_number ?? "",
     engine_number: car?.engine_number ?? "",
     registration_number: car?.registration_number ?? "",
+    registration_date: car?.registration_date ?? "",
     mileage_km: car?.mileage_km?.toString() ?? "",
     notes: car?.notes ?? "",
   };

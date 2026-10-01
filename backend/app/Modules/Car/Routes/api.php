@@ -1,8 +1,12 @@
 <?php
 
 use App\Modules\Car\Http\Controllers\CarController;
+use App\Modules\Car\Http\Controllers\CarDocumentController;
+use App\Modules\Car\Http\Controllers\CarExpenseController;
 use App\Modules\Car\Http\Controllers\CarImageController;
+use App\Modules\Car\Http\Controllers\CarPurchaseController;
 use App\Modules\Car\Http\Controllers\DealerController;
+use App\Modules\Car\Http\Controllers\DocumentExpiryController;
 use App\Modules\Car\Http\Controllers\ExpenseTypeController;
 use App\Modules\Car\Http\Controllers\PartyController;
 use Illuminate\Support\Facades\Route;
@@ -15,7 +19,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('cars/{car}/images', [CarImageController::class, 'store'])->name('cars.images.store');
         Route::get('cars/{car}/images/{image}/file', [CarImageController::class, 'file'])->name('cars.images.file');
         Route::delete('cars/{car}/images/{image}', [CarImageController::class, 'destroy'])->name('cars.images.destroy');
+
+        // Financial records: immutable; corrections via reversal.
+        Route::get('cars/{car}/purchase', [CarPurchaseController::class, 'show'])->name('cars.purchase.show');
+        Route::post('cars/{car}/purchases', [CarPurchaseController::class, 'store'])->name('cars.purchases.store');
+        Route::post('cars/{car}/purchases/{purchase}/reverse', [CarPurchaseController::class, 'reverse'])->name('cars.purchases.reverse');
+        Route::get('cars/{car}/expenses', [CarExpenseController::class, 'index'])->name('cars.expenses.index');
+        Route::post('cars/{car}/expenses', [CarExpenseController::class, 'store'])->name('cars.expenses.store');
+        Route::post('cars/{car}/expenses/{expense}/reverse', [CarExpenseController::class, 'reverse'])->name('cars.expenses.reverse');
+
+        // Compliance documents (fitness, tax token, insurance, route permit, other).
+        Route::get('cars/{car}/documents', [CarDocumentController::class, 'index'])->name('cars.documents.index');
+        Route::post('cars/{car}/documents', [CarDocumentController::class, 'store'])->name('cars.documents.store');
+        Route::put('cars/{car}/documents/{document}', [CarDocumentController::class, 'update'])->name('cars.documents.update');
+        Route::delete('cars/{car}/documents/{document}', [CarDocumentController::class, 'destroy'])->name('cars.documents.destroy');
     });
+
+    Route::get('car-documents/expiring', [DocumentExpiryController::class, 'index'])->name('car-documents.expiring');
+    Route::get('car-documents/expiry-summary', [DocumentExpiryController::class, 'summary'])->name('car-documents.expiry-summary');
 
     Route::apiResource('car-dealers', DealerController::class)->parameters(['car-dealers' => 'dealer']);
     Route::apiResource('car-parties', PartyController::class)->parameters(['car-parties' => 'party']);
