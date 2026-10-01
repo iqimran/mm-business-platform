@@ -18,10 +18,17 @@ trait HasPermissions
      */
     public function permissionNames(): Collection
     {
-        if (! $this->is_active) {
-            return collect();
-        }
+        return $this->is_active ? $this->grantedPermissionNames() : collect();
+    }
 
+    /**
+     * Permissions granted through roles regardless of account status.
+     * Used for privilege comparisons (an inactive admin still outranks a manager).
+     *
+     * @return Collection<int, string>
+     */
+    public function grantedPermissionNames(): Collection
+    {
         return $this->resolvedPermissions ??= Permission::query()
             ->join('role_permission', 'role_permission.permission_id', '=', 'permissions.id')
             ->join('role_user', 'role_user.role_id', '=', 'role_permission.role_id')

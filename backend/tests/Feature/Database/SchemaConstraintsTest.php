@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Database;
 
+use App\Modules\Administration\Models\Setting;
 use App\Modules\Audit\Models\AuditLog;
 use App\Modules\Branch\Models\Branch;
 use App\Modules\Identity\Models\Permission;
@@ -135,6 +136,31 @@ class SchemaConstraintsTest extends TestCase
         $this->assertTrue($user->roles->first()->is($role));
         $this->assertTrue($user->roles->first()->permissions->first()->is($permission));
         $this->assertTrue($branch->users->first()->is($user));
+    }
+
+    public function test_setting_keys_are_unique_and_dot_namespaced(): void
+    {
+        Setting::create(['key' => 'app.name', 'value' => 'MM Business']);
+
+        try {
+            Setting::create(['key' => 'app.name', 'value' => 'Duplicate']);
+            $this->fail('Duplicate setting key was accepted.');
+        } catch (UniqueConstraintViolationException) {
+        }
+
+        $this->expectException(QueryException::class);
+        Setting::create(['key' => 'App Name', 'value' => 'x']);
+    }
+
+    public function test_setting_values_round_trip_as_json(): void
+    {
+        Setting::create(['key' => 'app.name', 'value' => 'MM Business']);
+        Setting::create(['key' => 'app.features', 'value' => ['imports' => true, 'limit' => 5]]);
+
+        $this->assertSame('MM Business', Setting::where('key', 'app.name')->first()->value);
+        // jsonb does not preserve object key order; compare values only.
+        $this->assertEquals(['imports' => true, 'limit' => 5], Setting::where('key', 'app.features')->first()->value);
+        $this->assertSame('jsonb', DB::scalar("select data_type from information_schema.columns where table_name = 'settings' and column_name = 'value'"));
     }
 
     public function test_audit_logs_are_append_only(): void

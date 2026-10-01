@@ -2,6 +2,7 @@
 
 namespace App\Modules\Identity\Models;
 
+use App\Modules\Administration\Policies\UserPolicy;
 use App\Modules\Branch\Concerns\HasBranchAccess;
 use App\Modules\Branch\Models\Branch;
 use App\Modules\Identity\Concerns\HasPermissions;
@@ -9,6 +10,8 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Attributes\UseFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,6 +22,7 @@ use Illuminate\Notifications\Notifiable;
 #[Fillable(['name', 'email', 'password', 'is_active'])]
 #[Hidden(['password', 'remember_token'])]
 #[UseFactory(UserFactory::class)]
+#[UsePolicy(UserPolicy::class)]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -54,5 +58,19 @@ class User extends Authenticatable
     public function branches(): BelongsToMany
     {
         return $this->belongsToMany(Branch::class);
+    }
+
+    /**
+     * Users the actor may see: global actors see all; others see users sharing an accessible branch.
+     */
+    public function scopeVisibleTo(Builder $query, User $actor): Builder
+    {
+        if ($actor->canAccessAllBranches()) {
+            return $query;
+        }
+
+        return $query->where(fn (Builder $q) => $q
+            ->whereKey($actor->getKey())
+            ->orWhereHas('branches', fn (Builder $b) => $b->whereIn('branches.id', $actor->assignedActiveBranchIdsQuery())));
     }
 }
