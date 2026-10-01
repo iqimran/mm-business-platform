@@ -1,0 +1,7 @@
+#!/bin/sh
+# Fake pg_dump: exits 0 but leaves a truncated dump without the completion marker.
+for arg in "$@"; do
+  case "$arg" in --file=*) target="${arg#--file=}" ;; esac
+done
+printf -- '--\n-- PostgreSQL database dump\n--\nCREATE TABLE public.users (\n' > "$target"
+exit 0

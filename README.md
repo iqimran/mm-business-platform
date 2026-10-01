@@ -47,3 +47,5 @@ Services: API via nginx `http://localhost:8080` (health: `/up`), Next.js `http:/
 PostgreSQL and Redis bound to `127.0.0.1`. If a port is already taken, change it in your local `.env`
 (`NGINX_PORT`, `FRONTEND_PORT`, `DB_PORT`, `REDIS_PORT`). Tests run against the separate `mm_platform_test` database:
 `docker compose exec backend php artisan test`.
+
+Database backups and restore: see `docs/database-backups.md` (`docker compose exec backend php artisan db:backup`).

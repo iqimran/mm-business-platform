@@ -1,4 +1,4 @@
-import { BarChart3, Building2, Car, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
+import { BarChart3, Building2, Car, DatabaseBackup, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -35,6 +35,7 @@ export const navigation: NavSection[] = [
       { href: "/branches", label: "Branches", icon: Building2, permission: "branch.view" },
       { href: "/roles", label: "Roles & Permissions", icon: ShieldCheck, permission: "role.view" },
       { href: "/settings", label: "Settings", icon: Settings, permission: "setting.view" },
+      { href: "/backups", label: "Database backups", icon: DatabaseBackup, permission: "database.backup.view" },
     ],
   },
 ];

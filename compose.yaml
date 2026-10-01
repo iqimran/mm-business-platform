@@ -1,6 +1,37 @@
 # Local development stack. Values come from the root `.env` (see `.env.example`).
 name: ${COMPOSE_PROJECT_NAME:-mm-business-platform}
 
+# Shared definition of the Laravel containers (PHP-FPM, scheduler, queue worker).
+x-backend: &backend
+  build: ./docker/php
+  volumes:
+    - ./backend:/var/www/html
+  # Infrastructure wiring lives here so credentials are defined once (root .env).
+  # These override matching keys in backend/.env.
+  environment:
+    DB_CONNECTION: pgsql
+    DB_HOST: postgres
+    DB_PORT: 5432
+    DB_DATABASE: ${DB_DATABASE}
+    DB_USERNAME: ${DB_USERNAME}
+    DB_PASSWORD: ${DB_PASSWORD}
+    REDIS_CLIENT: phpredis
+    REDIS_HOST: redis
+    REDIS_PORT: 6379
+    CACHE_STORE: redis
+    QUEUE_CONNECTION: redis
+    SESSION_DRIVER: redis
+    # Must exceed the longest job (database backup timeout) so jobs are never run twice.
+    REDIS_QUEUE_RETRY_AFTER: 3900
+    # Backups: private directory outside the web root (default: backend/storage/app/backups on the host).
+    BACKUP_PATH: ${BACKUP_PATH:-/var/www/html/storage/app/backups}
+    BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
 services:
   postgres:
     image: postgres:17-alpine
@@ -32,29 +63,17 @@ services:
       retries: 10
 
   backend:
-    build: ./docker/php
-    volumes:
-      - ./backend:/var/www/html
-    # Infrastructure wiring lives here so credentials are defined once (root .env).
-    # These override matching keys in backend/.env.
-    environment:
-      DB_CONNECTION: pgsql
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_DATABASE: ${DB_DATABASE}
-      DB_USERNAME: ${DB_USERNAME}
-      DB_PASSWORD: ${DB_PASSWORD}
-      REDIS_CLIENT: phpredis
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      CACHE_STORE: redis
-      QUEUE_CONNECTION: redis
-      SESSION_DRIVER: redis
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    <<: *backend
+
+  # Laravel scheduler (daily database backup + retention cleanup, see routes/console.php).
+  scheduler:
+    <<: *backend
+    command: php artisan schedule:work
+
+  # Laravel queue worker (manual database backups and other background jobs).
+  queue:
+    <<: *backend
+    command: php artisan queue:work --tries=1 --timeout=3600 --sleep=3
 
   nginx:
     image: nginx:1.27-alpine

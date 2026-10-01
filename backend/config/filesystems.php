@@ -38,6 +38,22 @@ return [
             'report' => false,
         ],
 
+        // Database backups: private, never web-served. Change the driver (e.g. s3) to move
+        // backups to object storage without touching the backup code.
+        'backups' => [
+            'driver' => 'local',
+            'root' => env('BACKUP_PATH', storage_path('app/backups')),
+            'serve' => false,
+            // Owner-only access: a dump contains the entire database.
+            'visibility' => 'private',
+            'permissions' => [
+                'file' => ['public' => 0600, 'private' => 0600],
+                'dir' => ['public' => 0700, 'private' => 0700],
+            ],
+            'throw' => true,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

@@ -15,6 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
+    // Module console commands (e.g. db:backup).
+    ->withCommands([__DIR__.'/../app/Modules/Administration/Backups/Console'])
     ->withMiddleware(function (Middleware $middleware): void {
         // Sanctum SPA auth: session cookies + CSRF for requests from SANCTUM_STATEFUL_DOMAINS.
         $middleware->statefulApi();

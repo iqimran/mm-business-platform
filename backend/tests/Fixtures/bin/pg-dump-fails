@@ -1,0 +1,4 @@
+#!/bin/sh
+# Fake pg_dump: fails like a bad connection and leaks the password into stderr (must be scrubbed).
+echo "pg_dump: error: connection to server at \"postgres\" failed: FATAL: password authentication failed (password=$PGPASSWORD) in /var/lib/postgresql/data" >&2
+exit 1
