@@ -9,7 +9,7 @@ use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Models\HallBookingPayment;
 use App\Modules\Restaurant\Services\HallAvailability;
 use App\Modules\Restaurant\Support\BookingOverlapGuard;
-use App\Modules\Restaurant\Support\PaymentFormulas;
+use App\Modules\Restaurant\Support\PaymentAudit;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -97,7 +97,7 @@ class CreateHallBooking
                     'payment_date' => $record->payment_date->toDateString(),
                     'amount' => Money::toDecimal($paid),
                     'method' => $record->method->value,
-                    'due_after' => Money::toDecimal(PaymentFormulas::due($agreed, $paid)),
+                    ...PaymentAudit::transition($agreed, 0, $paid),
                 ]);
             }
 

@@ -8,6 +8,7 @@ use App\Modules\Restaurant\Enums\BookingStatus;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Models\HallBookingPayment;
 use App\Modules\Restaurant\Services\BookingFinancials;
+use App\Modules\Restaurant\Support\PaymentAudit;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -15,7 +16,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Records a payment against a booking (confirmed or completed), never exceeding the due.
- * The booking row is locked so concurrent payments cannot overpay.
+ * The booking row is locked so concurrent payments cannot overpay; the database trigger
+ * restaurant_booking_payment_check() is the final guard. Overpayment is not supported.
  */
 class RecordBookingPayment
 {
@@ -47,6 +49,11 @@ class RecordBookingPayment
                     'amount' => 'The amount exceeds the remaining due of '.Money::toDecimal($due).'.',
                 ]);
             }
+            if ($data['payment_date'] < $booking->created_at->toDateString()) {
+                throw ValidationException::withMessages(['payment_date' => 'The payment date cannot be before the booking was made.']);
+            }
+
+            $paidBefore = $booking->agreed_amount_minor - $due;
 
             $payment = HallBookingPayment::create([
                 'booking_id' => $booking->id,
@@ -64,7 +71,7 @@ class RecordBookingPayment
                 'payment_date' => $payment->payment_date->toDateString(),
                 'amount' => Money::toDecimal($amount),
                 'method' => $payment->method->value,
-                'due_after' => Money::toDecimal($due - $amount),
+                ...PaymentAudit::transition($booking->agreed_amount_minor, $paidBefore, $paidBefore + $amount),
             ]);
 
             return $payment;

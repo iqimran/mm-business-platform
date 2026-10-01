@@ -129,3 +129,20 @@ describe("payment form rules", () => {
     expect(payment({ method: "gold" }).success).toBe(false);
   });
 });
+
+describe("payment against a known due", () => {
+  it("rejects amounts above the remaining due", async () => {
+    const { paymentSchemaFor } = await import("./schemas");
+    const parse = (amount: string, due = "17999.50") =>
+      paymentSchemaFor(due).safeParse({ payment_date: today(), amount, method: "cash", reference: "", notes: "" });
+
+    expect(parse("17999.50").success).toBe(true);
+    expect(parse("0.01").success).toBe(true);
+    const over = parse("17999.51");
+    expect(over.success).toBe(false);
+    expect(over.success ? null : over.error.issues[0].message).toBe("The amount exceeds the remaining due of 17999.50.");
+    expect(parse("1", "0.00").success).toBe(false);
+    expect(parse("0").success).toBe(false);
+    expect(parse("-1").success).toBe(false);
+  });
+});

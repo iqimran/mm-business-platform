@@ -102,3 +102,15 @@ export const paymentSchema = z.object({
 });
 
 export type PaymentValues = z.infer<typeof paymentSchema>;
+
+/** Payment against a known remaining due: overpayment is caught before sending (the API re-checks). */
+export function paymentSchemaFor(due: string) {
+  const dueMinor = toMinor(due) ?? 0;
+
+  return paymentSchema.superRefine((v, ctx) => {
+    const amount = toMinor(v.amount);
+    if (amount !== null && amount > dueMinor) {
+      ctx.addIssue({ code: "custom", path: ["amount"], message: `The amount exceeds the remaining due of ${toDecimal(dueMinor)}.` });
+    }
+  });
+}

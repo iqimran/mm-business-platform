@@ -10,13 +10,15 @@ import { Label } from "@/components/ui/label";
 import { applyApiErrors } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import { paymentMethodLabels, paymentMethods, type PaymentInput } from "../api";
-import { paymentSchema, today, type PaymentValues } from "../schemas";
+import { useMemo } from "react";
+import { paymentSchemaFor, today, type PaymentValues } from "../schemas";
 
 /**
  * Payment against a restaurant obligation (food sale or hall booking).
  * The API rejects amounts above the remaining due.
  */
 export function PaymentForm({ due, onSubmit, onDone }: { due: string; onSubmit: (input: PaymentInput) => Promise<unknown>; onDone: () => void }) {
+  const schema = useMemo(() => paymentSchemaFor(due), [due]);
   const {
     register,
     handleSubmit,
@@ -24,7 +26,7 @@ export function PaymentForm({ due, onSubmit, onDone }: { due: string; onSubmit: 
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<PaymentValues>({
-    resolver: zodResolver(paymentSchema),
+    resolver: zodResolver(schema),
     defaultValues: { payment_date: today(), amount: "", method: "cash", reference: "", notes: "" },
   });
 

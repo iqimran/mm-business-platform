@@ -7,6 +7,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Models\HallBookingPayment;
 use App\Modules\Restaurant\Services\BookingFinancials;
+use App\Modules\Restaurant\Support\PaymentAudit;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
@@ -31,6 +32,8 @@ class ReverseBookingPayment
                 throw new ConflictHttpException('This payment has already been reversed.');
             }
 
+            $paidBefore = $this->financials->paid($booking);
+
             $payment->forceFill([
                 'reversed_at' => now(),
                 'reversed_by' => $actor->id,
@@ -39,7 +42,8 @@ class ReverseBookingPayment
 
             $this->audit->record('restaurant.booking_payment.reversed', 'restaurant_hall_booking_payment', $payment->id, $actor->id, $booking->branch_id,
                 oldValues: ['amount' => Money::toDecimal($payment->amount_minor), 'reversed' => false],
-                newValues: ['booking_id' => $booking->id, 'reversed' => true, 'reason' => $reason, 'due_after' => Money::toDecimal($this->financials->due($booking))]);
+                newValues: ['booking_id' => $booking->id, 'reversed' => true, 'reason' => $reason]
+                    + PaymentAudit::transition($booking->agreed_amount_minor, $paidBefore, $paidBefore - $payment->amount_minor));
 
             return $payment;
         });

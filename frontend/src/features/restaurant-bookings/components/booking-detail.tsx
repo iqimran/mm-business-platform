@@ -17,6 +17,17 @@ import { useCancelBooking, useCompleteBooking, useRecordBookingPayment, useRever
 import { BookingForm } from "./booking-form";
 import { BookingPaymentBadge, BookingStatusBadge } from "./booking-status-badge";
 
+/** Why no payment can be recorded right now (fully paid / cancelled). */
+function PaymentNote({ booking }: { booking: HallBooking }) {
+  if (booking.status === "cancelled") {
+    return <p className="text-sm text-muted-foreground">This booking is cancelled; it cannot receive payments.</p>;
+  }
+  if (booking.payment_status === "paid") {
+    return <p className="text-sm text-muted-foreground">Fully paid. Reverse a payment first if it needs correcting.</p>;
+  }
+  return null;
+}
+
 export function BookingDetail({ booking }: { booking: HallBooking }) {
   const { can } = usePermissions();
   const [editing, setEditing] = useState(false);
@@ -90,7 +101,6 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
                   </div>
                 ))}
               </dl>
-              <SaleFigures total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Agreed amount", "Paid", "Due"]} />
               {booking.notes ? <p className="text-sm whitespace-pre-line text-muted-foreground">{booking.notes}</p> : null}
             </>
           )}
@@ -98,8 +108,11 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
       </Card>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-2">
-          <CardTitle>Payments</CardTitle>
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <CardTitle>Payments</CardTitle>
+            <BookingPaymentBadge booking={booking} />
+          </div>
           {canPay && !paying ? (
             <Button size="sm" onClick={() => setPaying(true)}>
               <Plus aria-hidden />
@@ -108,7 +121,10 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
           ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
+          <SaleFigures total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Booking amount", "Total paid", "Remaining due"]} />
+          <PaymentNote booking={booking} />
           {paying ? <PaymentForm due={booking.due} onSubmit={(input) => recordPayment.mutateAsync(input)} onDone={() => setPaying(false)} /> : null}
+          <h3 className="text-sm font-medium">Payment history</h3>
           <PaymentsTable
             payments={booking.payments ?? []}
             canReverse={can("restaurant.booking_payment.reverse")}

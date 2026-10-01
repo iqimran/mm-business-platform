@@ -26,6 +26,7 @@ export function PaymentsTable({
             <TableHead>Date</TableHead>
             <TableHead>Method</TableHead>
             <TableHead className="hidden md:table-cell">Reference</TableHead>
+            <TableHead className="hidden lg:table-cell">Recorded by</TableHead>
             <TableHead className="text-right">Amount</TableHead>
             <TableHead className="w-40">
               <span className="sr-only">Actions</span>
@@ -41,6 +42,7 @@ export function PaymentsTable({
                 {p.reference ?? "—"}
                 {p.is_reversed ? <div className="text-xs">Reversed: {p.reversal_reason}</div> : null}
               </TableCell>
+              <TableCell className="hidden lg:table-cell">{p.recorded_by?.name ?? "—"}</TableCell>
               <TableCell className={`text-right tabular-nums ${p.is_reversed ? "line-through" : ""}`}>{formatAmount(p.amount)}</TableCell>
               <TableCell className="whitespace-normal text-right">
                 {p.is_reversed ? (
