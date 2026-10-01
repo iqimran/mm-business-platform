@@ -26,6 +26,7 @@ class BranchController extends Controller
 
         $branches = Branch::query()
             ->whereIn('id', $request->user()->accessibleBranchIds())
+            ->withCount('users')
             ->when($filters['search'] ?? null, fn ($q, $search) => $q->where(fn ($q) => $q
                 ->where('name', 'ilike', '%'.$search.'%')
                 ->orWhere('code', 'ilike', '%'.$search.'%')))
@@ -47,7 +48,7 @@ class BranchController extends Controller
     {
         Gate::authorize('view', $branch);
 
-        return ApiResponse::success(BranchResource::make($branch)->resolve());
+        return ApiResponse::success(BranchResource::make($branch->loadCount('users'))->resolve());
     }
 
     public function update(BranchRequest $request, Branch $branch, UpdateBranch $updateBranch): JsonResponse

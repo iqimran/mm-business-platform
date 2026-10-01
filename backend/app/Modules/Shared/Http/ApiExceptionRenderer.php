@@ -28,7 +28,9 @@ class ApiExceptionRenderer
             return match (true) {
                 $e instanceof ValidationException => ApiResponse::error('Validation failed.', 422, $e->errors()),
                 $e instanceof AuthenticationException => ApiResponse::error('Unauthenticated.', 401),
-                $e instanceof AuthorizationException, $e instanceof AccessDeniedHttpException => ApiResponse::error('This action is unauthorized.', 403),
+                // Authorization messages are authored by us (e.g. privilege-escalation reasons) and safe to show.
+                $e instanceof AuthorizationException => ApiResponse::error($e->getMessage() ?: 'This action is unauthorized.', 403),
+                $e instanceof AccessDeniedHttpException => ApiResponse::error('This action is unauthorized.', 403),
                 $e instanceof ThrottleRequestsException => ApiResponse::error('Too many requests. Please try again later.', 429, headers: $e->getHeaders()),
                 $e instanceof NotFoundHttpException => ApiResponse::error('Resource not found.', 404),
                 $e instanceof HttpExceptionInterface => ApiResponse::error($e->getMessage() ?: 'Request could not be processed.', $e->getStatusCode(), headers: $e->getHeaders()),

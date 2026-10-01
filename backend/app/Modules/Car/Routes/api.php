@@ -6,6 +6,7 @@ use App\Modules\Car\Http\Controllers\CarExpenseController;
 use App\Modules\Car\Http\Controllers\CarFinancialsController;
 use App\Modules\Car\Http\Controllers\CarImageController;
 use App\Modules\Car\Http\Controllers\CarPurchaseController;
+use App\Modules\Car\Http\Controllers\CarReportController;
 use App\Modules\Car\Http\Controllers\CarSaleController;
 use App\Modules\Car\Http\Controllers\CarStatusController;
 use App\Modules\Car\Http\Controllers\DealerController;
@@ -54,6 +55,18 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('car-dashboard', [CarFinancialsController::class, 'dashboard'])->name('car-dashboard');
     Route::get('cars/{car}/financial-summary', [CarFinancialsController::class, 'summary'])->name('cars.financial-summary');
     Route::get('cars/{car}/timeline', [CarFinancialsController::class, 'timeline'])->name('cars.timeline');
+
+    // Reports (server-side filters, sorting, pagination and totals).
+    Route::prefix('car-reports')->name('car-reports.')->controller(CarReportController::class)->group(function () {
+        Route::get('cars', 'cars')->name('cars');
+        Route::get('sales', 'sales')->name('sales');
+        Route::get('receivables', 'receivables')->name('receivables');
+        Route::get('payables', 'payables')->name('payables');
+        Route::get('expenses', 'expenses')->name('expenses');
+        Route::get('branches', 'branches')->name('branches');
+        Route::get('{report}/export', 'export')->name('export')
+            ->whereIn('report', ['cars', 'sales', 'receivables', 'payables', 'expenses', 'branches']);
+    });
 
     Route::get('car-documents/expiring', [DocumentExpiryController::class, 'index'])->name('car-documents.expiring');
     Route::get('car-documents/expiry-summary', [DocumentExpiryController::class, 'summary'])->name('car-documents.expiry-summary');

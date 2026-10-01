@@ -59,6 +59,7 @@ class PermissionSeeder extends Seeder
         'car.dealer_payment.create' => 'Record dealer payments',
         'car.dealer_payment.reverse' => 'Reverse (correct) dealer payments',
         'car.status.update' => 'Change car lifecycle status (stock, preparation, ready, complete)',
+        'car.report.view' => 'View car reports',
         'car.document.view' => 'View car documents and expiry alerts',
         'car.document.create' => 'Add car documents (fitness, tax token, ...)',
         'car.document.update' => 'Update car documents',

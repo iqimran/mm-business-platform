@@ -34,7 +34,10 @@ export function applyApiErrors<T extends FieldValues>(
 
 export function errorMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    return error.status === 403 ? "You do not have permission to do this." : error.message;
+    if (error.status === 403) {
+      return error.message && error.message !== "This action is unauthorized." ? error.message : "You do not have permission to do this.";
+    }
+    return error.message;
   }
   return "Something went wrong. Please try again.";
 }

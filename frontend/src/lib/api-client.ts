@@ -75,3 +75,35 @@ export async function apiRequest<T>(path: string, { method = "GET", body }: Requ
 
   return payload.data;
 }
+
+/**
+ * Downloads a file from the API (e.g. report exports) with the session cookie and saves it
+ * under the server-provided file name. API errors are raised as ApiError like JSON calls.
+ */
+export async function apiDownload(path: string, fallbackName: string): Promise<void> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, { credentials: "include", headers: { Accept: "*/*" } });
+  } catch {
+    throw new ApiError("Cannot reach the server. Please check your connection.", 0);
+  }
+
+  if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as ApiFailure | null;
+    const first = payload?.errors ? Object.values(payload.errors)[0]?.[0] : undefined;
+    throw new ApiError(first ?? payload?.message ?? "The download failed.", response.status, payload?.errors ?? {});
+  }
+
+  const disposition = response.headers.get("Content-Disposition") ?? "";
+  const match = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposition);
+  const filename = match ? decodeURIComponent(match[1]) : fallbackName;
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
