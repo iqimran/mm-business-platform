@@ -1,11 +1,13 @@
 <?php
 
 use App\Modules\Restaurant\Http\Controllers\CustomerController;
+use App\Modules\Restaurant\Http\Controllers\ExpenseCategoryController;
 use App\Modules\Restaurant\Http\Controllers\FoodSaleController;
 use App\Modules\Restaurant\Http\Controllers\HallBookingController;
 use App\Modules\Restaurant\Http\Controllers\HallController;
 use App\Modules\Restaurant\Http\Controllers\MenuCategoryController;
 use App\Modules\Restaurant\Http\Controllers\MenuItemController;
+use App\Modules\Restaurant\Http\Controllers\RestaurantExpenseController;
 use App\Modules\Restaurant\Http\Controllers\SupplierController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,4 +42,12 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
         Route::post('hall-bookings/{booking}/payments', [HallBookingController::class, 'storePayment'])->name('hall-bookings.payments.store');
         Route::post('hall-bookings/{booking}/payments/{payment}/reverse', [HallBookingController::class, 'reversePayment'])->name('hall-bookings.payments.reverse');
     });
+
+    // Daily category-wise expenses (branch-scoped). Immutable: corrections via reversal.
+    Route::apiResource('expense-categories', ExpenseCategoryController::class)->parameters(['expense-categories' => 'expenseCategory']);
+    Route::get('expense-summary', [RestaurantExpenseController::class, 'summary'])->name('expense-summary');
+    Route::get('expenses', [RestaurantExpenseController::class, 'index'])->name('expenses.index');
+    Route::post('expenses', [RestaurantExpenseController::class, 'store'])->name('expenses.store');
+    Route::get('expenses/{expense}', [RestaurantExpenseController::class, 'show'])->name('expenses.show');
+    Route::post('expenses/{expense}/reverse', [RestaurantExpenseController::class, 'reverse'])->name('expenses.reverse');
 });

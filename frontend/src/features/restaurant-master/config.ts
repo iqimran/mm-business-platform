@@ -18,7 +18,7 @@ export type MasterField = {
 
 export type MasterResource = {
   /** API path under /api/v1. */
-  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items" | "restaurant/halls";
+  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items" | "restaurant/halls" | "restaurant/expense-categories";
   title: string;
   singular: string;
   description: string;
@@ -104,5 +104,18 @@ export const hallResource: MasterResource = {
     { name: "branch_id", label: "Branch", type: "branch", required: true, max: 26, column: true },
     { name: "capacity", label: "Capacity (guests)", type: "number", max: 100000, column: true, nullable: true },
     { name: "description", label: "Description", type: "textarea", max: 2000 },
+  ],
+};
+
+export const expenseCategoryResource: MasterResource = {
+  path: "restaurant/expense-categories",
+  title: "Expense categories",
+  singular: "category",
+  description: "Categories for daily restaurant expenses (e.g. food purchase, utilities). Shared by all branches.",
+  permission: "restaurant.expense_category",
+  deletable: true,
+  fields: [
+    { name: "name", label: "Name", type: "text", required: true, max: 100, column: true },
+    { name: "description", label: "Description", type: "text", max: 255, column: true },
   ],
 };

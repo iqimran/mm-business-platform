@@ -96,6 +96,13 @@ class PermissionSeeder extends Seeder
         'restaurant.booking.cancel' => 'Cancel hall bookings',
         'restaurant.booking_payment.create' => 'Record hall booking payments',
         'restaurant.booking_payment.reverse' => 'Reverse (correct/refund) hall booking payments',
+        'restaurant.expense_category.view' => 'View restaurant expense categories',
+        'restaurant.expense_category.create' => 'Create restaurant expense categories',
+        'restaurant.expense_category.update' => 'Update or deactivate restaurant expense categories',
+        'restaurant.expense_category.delete' => 'Delete unused restaurant expense categories',
+        'restaurant.expense.view' => 'View restaurant expenses and daily summaries',
+        'restaurant.expense.create' => 'Record restaurant expenses',
+        'restaurant.expense.reverse' => 'Reverse (correct) restaurant expenses',
     ];
 
     public function run(): void
