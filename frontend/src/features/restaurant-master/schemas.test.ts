@@ -75,3 +75,16 @@ describe("displayValue", () => {
     expect(displayValue(field("description"), record)).toBe("—");
   });
 });
+
+describe("halls (branch-scoped)", () => {
+  it("requires a branch and a positive capacity, and can clear the capacity", async () => {
+    const { hallResource } = await import("./config");
+    const parse = (v: Record<string, string>) => buildSchema(hallResource).safeParse({ is_active: true, name: "Grand", branch_id: "b1", capacity: "", description: "", ...v });
+    expect(parse({}).success).toBe(true);
+    expect(parse({ branch_id: "" }).success).toBe(false);
+    expect(parse({ capacity: "0" }).success).toBe(false);
+    expect(parse({ capacity: "300" }).success).toBe(true);
+    expect(toPayload(hallResource, { name: "Grand", branch_id: "b1", capacity: "", description: "", is_active: true })).toMatchObject({ capacity: null });
+    expect(toPayload(hallResource, { name: "Grand", branch_id: "b1", capacity: "300", description: "", is_active: true })).toMatchObject({ capacity: 300 });
+  });
+});

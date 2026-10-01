@@ -21,31 +21,36 @@ export function buildSchema(resource: MasterResource) {
     }
     if (field.type === "number") {
       shape[field.name] = rule.refine(
-        (v) => v === "" || (/^\d+$/.test(v) && Number(v) <= field.max),
-        `${field.label} must be a whole number between 0 and ${field.max}.`,
+        (v) => v === "" || (/^\d+$/.test(v) && Number(v) >= (field.nullable ? 1 : 0) && Number(v) <= field.max),
+        `${field.label} must be a whole number between ${field.nullable ? 1 : 0} and ${field.max}.`,
       );
       continue;
     }
 
     rule = rule.max(field.max, `${field.label} must be at most ${field.max} characters.`);
-    if (field.required) rule = rule.min(1, field.type === "category" ? `Select a ${field.label.toLowerCase()}.` : `${field.label} is required.`);
+    const select = field.type === "category" || field.type === "branch";
+    if (field.required) rule = rule.min(1, select ? `Select a ${field.label.toLowerCase()}.` : `${field.label} is required.`);
     shape[field.name] = rule;
   }
 
   return z.object(shape);
 }
 
-/** Form values → API payload: empty optional text is sent as null (clears it); numbers as integers. */
+/**
+ * Form values → API payload: empty optional text is sent as null (clears it); numbers as integers.
+ * Empty number fields are omitted (server default), or sent as null when the field is nullable.
+ */
 export function toPayload(resource: MasterResource, values: FormValues): Record<string, unknown> {
   const types = Object.fromEntries(resource.fields.map((f) => [f.name, f.type]));
+  const nullable = new Set(resource.fields.filter((f) => f.nullable).map((f) => f.name));
 
   return Object.fromEntries(
     Object.entries(values)
-      .filter(([key, value]) => !(types[key] === "number" && value === ""))
+      .filter(([key, value]) => !(types[key] === "number" && value === "" && !nullable.has(key)))
       .map(([key, value]) => {
         if (typeof value !== "string") return [key, value];
         const trimmed = value.trim();
-        if (types[key] === "number") return [key, Number(trimmed)];
+        if (types[key] === "number") return [key, trimmed === "" ? null : Number(trimmed)];
         return [key, trimmed === "" ? null : trimmed];
       }),
   );

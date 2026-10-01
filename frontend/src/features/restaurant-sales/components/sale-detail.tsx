@@ -2,16 +2,16 @@
 
 import { Plus } from "lucide-react";
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions } from "@/features/auth/hooks";
 import { formatAmount } from "@/lib/money";
-import { paymentMethodLabels, type FoodSale } from "../api";
-import { useReversePayment, useReverseSale } from "../hooks";
+import type { FoodSale } from "../api";
+import { useRecordPayment, useReversePayment, useReverseSale } from "../hooks";
 import { PaymentForm } from "./payment-form";
 import { PaymentStatusBadge } from "./payment-status-badge";
+import { PaymentsTable } from "./payments-table";
 import { ReverseButton } from "./reverse-button";
 import { SaleFigures } from "./sale-figures";
 
@@ -48,55 +48,12 @@ function Items({ sale }: { sale: FoodSale }) {
   );
 }
 
-function Payments({ sale, canReverse }: { sale: FoodSale; canReverse: boolean }) {
-  const reverse = useReversePayment(sale.id);
-  const payments = sale.payments ?? [];
-
-  if (payments.length === 0) return <p className="text-sm text-muted-foreground">No payments recorded.</p>;
-
-  return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Method</TableHead>
-            <TableHead className="hidden md:table-cell">Reference</TableHead>
-            <TableHead className="text-right">Amount</TableHead>
-            <TableHead className="w-40">
-              <span className="sr-only">Actions</span>
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {payments.map((p) => (
-            <TableRow key={p.id} className={p.is_reversed ? "text-muted-foreground" : undefined}>
-              <TableCell className="tabular-nums">{p.payment_date}</TableCell>
-              <TableCell>{paymentMethodLabels[p.method]}</TableCell>
-              <TableCell className="hidden whitespace-normal md:table-cell">
-                {p.reference ?? "—"}
-                {p.is_reversed ? <div className="text-xs">Reversed: {p.reversal_reason}</div> : null}
-              </TableCell>
-              <TableCell className={`text-right tabular-nums ${p.is_reversed ? "line-through" : ""}`}>{formatAmount(p.amount)}</TableCell>
-              <TableCell className="whitespace-normal text-right">
-                {p.is_reversed ? (
-                  <Badge variant="outline">Reversed</Badge>
-                ) : canReverse ? (
-                  <ReverseButton label="payment" onReverse={(reason) => reverse.mutateAsync({ paymentId: p.id, reason })} />
-                ) : null}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
 export function SaleDetail({ sale }: { sale: FoodSale }) {
   const { can } = usePermissions();
   const [paying, setPaying] = useState(false);
   const reverseSale = useReverseSale(sale.id);
+  const recordPayment = useRecordPayment(sale.id);
+  const reversePayment = useReversePayment(sale.id);
   const activePayments = (sale.payments ?? []).some((p) => !p.is_reversed);
 
   const canPay = can("restaurant.sale_payment.create") && !sale.is_reversed && sale.payment_status !== "paid";
@@ -156,8 +113,12 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
           ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          {paying ? <PaymentForm sale={sale} onDone={() => setPaying(false)} /> : null}
-          <Payments sale={sale} canReverse={can("restaurant.sale_payment.reverse") && !sale.is_reversed} />
+          {paying ? <PaymentForm due={sale.due} onSubmit={(input) => recordPayment.mutateAsync(input)} onDone={() => setPaying(false)} /> : null}
+          <PaymentsTable
+            payments={sale.payments ?? []}
+            canReverse={can("restaurant.sale_payment.reverse") && !sale.is_reversed}
+            onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason })}
+          />
         </CardContent>
       </Card>
 

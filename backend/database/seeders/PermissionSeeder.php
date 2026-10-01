@@ -86,6 +86,16 @@ class PermissionSeeder extends Seeder
         'restaurant.sale.reverse' => 'Reverse (cancel) food sales',
         'restaurant.sale_payment.create' => 'Record food sale payments',
         'restaurant.sale_payment.reverse' => 'Reverse (correct) food sale payments',
+        'restaurant.hall.view' => 'View halls',
+        'restaurant.hall.create' => 'Create halls',
+        'restaurant.hall.update' => 'Update or deactivate halls',
+        'restaurant.hall.delete' => 'Delete halls without bookings',
+        'restaurant.booking.view' => 'View hall bookings and availability',
+        'restaurant.booking.create' => 'Create hall bookings',
+        'restaurant.booking.update' => 'Change hall bookings and mark them completed',
+        'restaurant.booking.cancel' => 'Cancel hall bookings',
+        'restaurant.booking_payment.create' => 'Record hall booking payments',
+        'restaurant.booking_payment.reverse' => 'Reverse (correct/refund) hall booking payments',
     ];
 
     public function run(): void

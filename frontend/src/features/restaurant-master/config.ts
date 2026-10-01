@@ -5,18 +5,20 @@
 export type MasterField = {
   name: string;
   label: string;
-  /** "money" = decimal string amount; "category" = menu category picker. */
-  type: "text" | "tel" | "textarea" | "number" | "money" | "category";
+  /** "money" = decimal string amount; "category" = menu category picker; "branch" = one of the user's branches. */
+  type: "text" | "tel" | "textarea" | "number" | "money" | "category" | "branch";
   required?: boolean;
   /** Max length for text fields; max value for number fields. */
   max: number;
   /** Shown as a table column. */
   column?: boolean;
+  /** Number fields: an empty value clears the field (null) instead of keeping the server default. */
+  nullable?: boolean;
 };
 
 export type MasterResource = {
   /** API path under /api/v1. */
-  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items";
+  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items" | "restaurant/halls";
   title: string;
   singular: string;
   description: string;
@@ -86,6 +88,21 @@ export const menuItemResource: MasterResource = {
     { name: "name", label: "Name", type: "text", required: true, max: 150, column: true },
     { name: "category_id", label: "Category", type: "category", required: true, max: 26, column: true },
     { name: "price", label: "Selling price", type: "money", required: true, max: 15, column: true },
+    { name: "description", label: "Description", type: "textarea", max: 2000 },
+  ],
+};
+
+export const hallResource: MasterResource = {
+  path: "restaurant/halls",
+  title: "Halls",
+  singular: "hall",
+  description: "Bookable halls of your branches. A hall with bookings can only be deactivated.",
+  permission: "restaurant.hall",
+  deletable: true,
+  fields: [
+    { name: "name", label: "Name", type: "text", required: true, max: 100, column: true },
+    { name: "branch_id", label: "Branch", type: "branch", required: true, max: 26, column: true },
+    { name: "capacity", label: "Capacity (guests)", type: "number", max: 100000, column: true, nullable: true },
     { name: "description", label: "Description", type: "textarea", max: 2000 },
   ],
 };

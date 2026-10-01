@@ -14,6 +14,7 @@ import type { MasterRecord } from "../api";
 import type { MasterField, MasterResource } from "../config";
 import { useSaveRecord } from "../hooks";
 import { buildSchema, toPayload, type FormValues } from "../schemas";
+import { BranchSelect } from "./branch-select";
 import { CategorySelect } from "./category-select";
 
 function FieldInput({ field, id, invalid, record, register }: {
@@ -30,6 +31,8 @@ function FieldInput({ field, id, invalid, record, register }: {
       return <Textarea rows={2} {...common} />;
     case "category":
       return <CategorySelect current={record?.category} {...common} />;
+    case "branch":
+      return <BranchSelect current={record?.branch} {...common} />;
     case "money":
       return <Input inputMode="decimal" placeholder="0.00" {...common} />;
     case "number":

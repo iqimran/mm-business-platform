@@ -4,13 +4,17 @@ import type { MasterResource } from "./config";
 
 export type MenuCategoryRef = { id: string; name: string; is_active: boolean };
 
+export type BranchRef = { id: string; code: string; name: string };
+
 export type MasterRecord = {
   id: string;
   name: string;
   is_active: boolean;
   /** Menu items only. */
   category?: MenuCategoryRef;
-  [field: string]: string | number | boolean | null | MenuCategoryRef | undefined;
+  /** Halls only. */
+  branch?: BranchRef;
+  [field: string]: string | number | boolean | null | MenuCategoryRef | BranchRef | undefined;
 };
 
 export type MasterFilters = {

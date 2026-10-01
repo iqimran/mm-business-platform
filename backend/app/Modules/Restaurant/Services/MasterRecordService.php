@@ -11,7 +11,7 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
  * Create/update/delete for restaurant master data: transactional and audited.
- * $entity is the audit entity type, e.g. "restaurant_customer".
+ * $entity is the audit entity type, e.g. "restaurant_customer". Branch-scoped records (halls) are audited with their branch.
  */
 class MasterRecordService
 {
@@ -30,7 +30,7 @@ class MasterRecordService
         return DB::transaction(function () use ($actor, $modelClass, $entity, $data) {
             $record = $modelClass::create($data);
 
-            $this->audit->record("{$entity}.created", $entity, $record->getKey(), $actor->id,
+            $this->audit->record("{$entity}.created", $entity, $record->getKey(), $actor->id, $record->getAttribute('branch_id'),
                 newValues: Arr::except($record->getAttributes(), self::NOT_AUDITED));
 
             return $record;
@@ -47,7 +47,7 @@ class MasterRecordService
             $record->save();
 
             if ($changed !== []) {
-                $this->audit->record("{$entity}.updated", $entity, $record->getKey(), $actor->id,
+                $this->audit->record("{$entity}.updated", $entity, $record->getKey(), $actor->id, $record->getAttribute('branch_id'),
                     oldValues: $old, newValues: Arr::only($record->getAttributes(), $changed));
             }
 
@@ -68,7 +68,7 @@ class MasterRecordService
             $old = Arr::except($record->getAttributes(), self::NOT_AUDITED);
             $record->delete();
 
-            $this->audit->record("{$entity}.deleted", $entity, $record->getKey(), $actor->id, oldValues: $old);
+            $this->audit->record("{$entity}.deleted", $entity, $record->getKey(), $actor->id, $record->getAttribute('branch_id'), oldValues: $old);
         });
     }
 }

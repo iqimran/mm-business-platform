@@ -9,13 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyApiErrors } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
-import { paymentMethodLabels, paymentMethods, type FoodSale } from "../api";
-import { useRecordPayment } from "../hooks";
+import { paymentMethodLabels, paymentMethods, type PaymentInput } from "../api";
 import { paymentSchema, today, type PaymentValues } from "../schemas";
 
-/** Payment against the due; the API rejects amounts above the remaining due. */
-export function PaymentForm({ sale, onDone }: { sale: FoodSale; onDone: () => void }) {
-  const record = useRecordPayment(sale.id);
+/**
+ * Payment against a restaurant obligation (food sale or hall booking).
+ * The API rejects amounts above the remaining due.
+ */
+export function PaymentForm({ due, onSubmit, onDone }: { due: string; onSubmit: (input: PaymentInput) => Promise<unknown>; onDone: () => void }) {
   const {
     register,
     handleSubmit,
@@ -29,7 +30,7 @@ export function PaymentForm({ sale, onDone }: { sale: FoodSale; onDone: () => vo
 
   const submit = handleSubmit(async (v) => {
     try {
-      await record.mutateAsync({ ...v, reference: v.reference || null, notes: v.notes || null });
+      await onSubmit({ ...v, reference: v.reference || null, notes: v.notes || null });
       onDone();
     } catch (e) {
       applyApiErrors(e, setError, ["payment_date", "amount", "method", "reference", "notes"]);
@@ -51,9 +52,9 @@ export function PaymentForm({ sale, onDone }: { sale: FoodSale; onDone: () => vo
           <button
             type="button"
             className="w-fit text-xs text-muted-foreground underline-offset-2 hover:underline"
-            onClick={() => setValue("amount", sale.due, { shouldValidate: true })}
+            onClick={() => setValue("amount", due, { shouldValidate: true })}
           >
-            Due: {formatAmount(sale.due)} (use full amount)
+            Due: {formatAmount(due)} (use full amount)
           </button>
           <FieldError id="pay-amount-error" message={errors.amount?.message} />
         </div>

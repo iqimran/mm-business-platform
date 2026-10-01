@@ -42,16 +42,12 @@ final class SaleFormulas
 
     public static function due(int $totalMinor, int $paidMinor): int
     {
-        return $totalMinor - $paidMinor;
+        return PaymentFormulas::due($totalMinor, $paidMinor);
     }
 
     public static function status(int $totalMinor, int $paidMinor): PaymentStatus
     {
-        return match (true) {
-            $paidMinor <= 0 => PaymentStatus::Unpaid,
-            $paidMinor >= $totalMinor => PaymentStatus::Paid,
-            default => PaymentStatus::Partial,
-        };
+        return PaymentFormulas::status($totalMinor, $paidMinor);
     }
 
     private static function bounded(int|float $minor): int
