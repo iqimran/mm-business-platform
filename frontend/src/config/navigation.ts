@@ -1,4 +1,4 @@
-import { BarChart3, Building2, Car, DatabaseBackup, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, Building2, Car, ChefHat, Contact, DatabaseBackup, FileClock, LayoutDashboard, Receipt, Settings, ShieldCheck, Tags, Truck, UserCog, Users, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -26,6 +26,15 @@ export const navigation: NavSection[] = [
       { href: "/car-dealers", label: "Dealers", icon: Truck, permission: "car.dealer.view" },
       { href: "/car-parties", label: "Parties", icon: Users, permission: "car.party.view" },
       { href: "/car-expense-types", label: "Expense types", icon: Receipt, permission: "car.expense_type.view" },
+    ],
+  },
+  {
+    title: "Restaurant",
+    items: [
+      { href: "/restaurant/menu", label: "Food menu", icon: ChefHat, permission: "restaurant.menu.view" },
+      { href: "/restaurant/menu-categories", label: "Menu categories", icon: Tags, permission: "restaurant.menu_category.view" },
+      { href: "/restaurant/customers", label: "Customers", icon: Contact, permission: "restaurant.customer.view" },
+      { href: "/restaurant/suppliers", label: "Suppliers", icon: BookOpen, permission: "restaurant.supplier.view" },
     ],
   },
   {

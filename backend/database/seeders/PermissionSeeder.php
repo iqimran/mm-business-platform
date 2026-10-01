@@ -67,6 +67,20 @@ class PermissionSeeder extends Seeder
         'car.document.create' => 'Add car documents (fitness, tax token, ...)',
         'car.document.update' => 'Update car documents',
         'car.document.delete' => 'Delete car documents',
+        'restaurant.customer.view' => 'View restaurant customers',
+        'restaurant.customer.create' => 'Create restaurant customers',
+        'restaurant.customer.update' => 'Update or deactivate restaurant customers',
+        'restaurant.supplier.view' => 'View restaurant suppliers',
+        'restaurant.supplier.create' => 'Create restaurant suppliers',
+        'restaurant.supplier.update' => 'Update or deactivate restaurant suppliers',
+        'restaurant.menu_category.view' => 'View food menu categories',
+        'restaurant.menu_category.create' => 'Create food menu categories',
+        'restaurant.menu_category.update' => 'Update food menu categories',
+        'restaurant.menu_category.delete' => 'Delete food menu categories',
+        'restaurant.menu.view' => 'View the food menu',
+        'restaurant.menu.create' => 'Create food menu items',
+        'restaurant.menu.update' => 'Update food menu items (incl. price and availability)',
+        'restaurant.menu.delete' => 'Delete food menu items',
     ];
 
     public function run(): void
