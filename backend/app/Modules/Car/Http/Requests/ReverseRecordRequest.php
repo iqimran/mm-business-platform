@@ -11,7 +11,13 @@ class ReverseRecordRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        $ability = $this->route('purchase') ? 'reversePurchase' : 'reverseExpense';
+        $ability = match (true) {
+            $this->route('purchase') !== null => 'reversePurchase',
+            $this->route('expense') !== null => 'reverseExpense',
+            $this->route('sale') !== null => 'reverseSale',
+            $this->route('partyPayment') !== null => 'reversePartyPayment',
+            default => 'reverseDealerPayment',
+        };
 
         return $this->user()->can($ability, $this->route('car'));
     }

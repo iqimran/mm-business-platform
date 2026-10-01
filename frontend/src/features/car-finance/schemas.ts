@@ -38,6 +38,24 @@ export const expenseSchema = z.object({
   reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
 });
 
+export const saleSchema = z.object({
+  party_id: z.string().min(1, "Select a party (customer)."),
+  sale_date: dateField("Sale date"),
+  amount: amountField,
+  reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
+  notes: z.string().trim().max(5000, "Notes must be at most 5000 characters."),
+});
+
+export const paymentSchema = z.object({
+  payment_date: dateField("Payment date"),
+  amount: amountField,
+  method: z.enum(["cash", "bank_transfer", "cheque", "mobile_banking", "other"]),
+  reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
+  notes: z.string().trim().max(5000, "Notes must be at most 5000 characters."),
+});
+
+export type SaleValues = z.infer<typeof saleSchema>;
+export type PaymentValues = z.infer<typeof paymentSchema>;
 export type PurchaseValues = z.infer<typeof purchaseSchema>;
 export type ExpenseValues = z.infer<typeof expenseSchema>;
 

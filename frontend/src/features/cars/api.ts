@@ -38,6 +38,8 @@ export type Car = {
   registration_date: string | null;
   mileage_km: number | null;
   status: CarStatus;
+  /** Manual transitions allowed from the current status (SOLD only via recording a sale). */
+  next_statuses?: CarStatus[];
   notes: string | null;
   images_count?: number;
   images?: CarImage[];

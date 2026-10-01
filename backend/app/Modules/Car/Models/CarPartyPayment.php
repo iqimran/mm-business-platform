@@ -3,18 +3,17 @@
 namespace App\Modules\Car\Models;
 
 use App\Modules\Car\Concerns\Reversible;
+use App\Modules\Car\Enums\PaymentMethod;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Immutable purchase record; correct by reversing and recording a new purchase.
- * amount_minor is in minor units (2 decimals).
+ * Money received from the party (customer) against a sale. Reduces Party Due only.
  */
-#[Fillable(['car_id', 'branch_id', 'dealer_id', 'purchase_date', 'amount_minor', 'reference', 'notes', 'recorded_by'])]
-class CarPurchase extends Model
+#[Fillable(['sale_id', 'car_id', 'branch_id', 'party_id', 'payment_date', 'amount_minor', 'method', 'reference', 'notes', 'recorded_by'])]
+class CarPartyPayment extends Model
 {
     use HasUlids, Reversible;
 
@@ -23,8 +22,9 @@ class CarPurchase extends Model
     protected function casts(): array
     {
         return [
-            'purchase_date' => 'date',
+            'payment_date' => 'date',
             'amount_minor' => 'integer',
+            'method' => PaymentMethod::class,
             'reversed_at' => 'datetime',
         ];
     }
@@ -34,13 +34,8 @@ class CarPurchase extends Model
         return $this->belongsTo(Car::class);
     }
 
-    public function payments(): HasMany
+    public function sale(): BelongsTo
     {
-        return $this->hasMany(CarDealerPayment::class, 'purchase_id');
-    }
-
-    public function dealer(): BelongsTo
-    {
-        return $this->belongsTo(CarDealer::class, 'dealer_id');
+        return $this->belongsTo(CarSale::class, 'sale_id');
     }
 }

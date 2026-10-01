@@ -3,9 +3,14 @@
 namespace Tests\Feature\Car;
 
 use App\Modules\Branch\Models\Branch;
+use App\Modules\Car\Enums\CarStatus;
+use App\Modules\Car\Models\Car;
+use App\Modules\Car\Models\CarDealer;
+use App\Modules\Car\Models\CarPurchase;
 use App\Modules\Identity\Models\Permission;
 use App\Modules\Identity\Models\Role;
 use App\Modules\Identity\Models\User;
+use App\Modules\Shared\Support\Money;
 use Database\Seeders\PermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -49,6 +54,37 @@ abstract class CarTestCase extends TestCase
         'car.view', 'car.purchase.view', 'car.purchase.create', 'car.purchase.reverse',
         'car.expense.view', 'car.expense.create', 'car.expense.reverse',
     ];
+
+    protected const SALES_PERMISSIONS = [
+        'car.view', 'car.purchase.view', 'car.purchase.reverse', 'car.expense.view', 'car.expense.create',
+        'car.sale.view', 'car.sale.create', 'car.sale.reverse',
+        'car.payment.view', 'car.payment.create', 'car.payment.reverse',
+        'car.dealer_payment.view', 'car.dealer_payment.create', 'car.dealer_payment.reverse',
+        'car.status.update',
+    ];
+
+    /** Full sales/payments user for branch A only. */
+    protected function salesA(): User
+    {
+        return $this->userWith(self::SALES_PERMISSIONS, [$this->branchA]);
+    }
+
+    /**
+     * A car in branch A with an active purchase, in the given status.
+     */
+    protected function purchasedCar(string $amount = '700000', CarStatus $status = CarStatus::ReadyForSale, ?Branch $branch = null): Car
+    {
+        $car = Car::factory()->create(['branch_id' => ($branch ?? $this->branchA)->id]);
+        $car->forceFill(['status' => $status])->save();
+        CarPurchase::create([
+            'car_id' => $car->id, 'branch_id' => $car->branch_id,
+            'dealer_id' => CarDealer::factory()->create()->id,
+            'purchase_date' => '2026-09-01', 'amount_minor' => Money::toMinor($amount),
+            'recorded_by' => User::factory()->create()->id,
+        ]);
+
+        return $car;
+    }
 
     /** Car finance user for branch A only. */
     protected function financeA(): User

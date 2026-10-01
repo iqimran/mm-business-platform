@@ -6,7 +6,10 @@ use App\Modules\Car\Models\Car;
 use App\Modules\Car\Models\CarDealer;
 use App\Modules\Car\Models\CarExpense;
 use App\Modules\Car\Models\CarExpenseType;
+use App\Modules\Car\Models\CarParty;
+use App\Modules\Car\Models\CarPartyPayment;
 use App\Modules\Car\Models\CarPurchase;
+use App\Modules\Car\Models\CarSale;
 use App\Modules\Identity\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -121,6 +124,29 @@ class FinancialRecordIntegrityTest extends CarTestCase
 
         $this->expectException(UniqueConstraintViolationException::class);
         $this->purchase();
+    }
+
+    public function test_sales_and_payments_are_immutable_and_unique(): void
+    {
+        $sale = CarSale::create([
+            'car_id' => $this->car->id, 'branch_id' => $this->branchA->id, 'party_id' => CarParty::factory()->create()->id,
+            'sale_date' => '2026-09-20', 'amount_minor' => 85000000, 'status_before_sale' => 'READY_FOR_SALE',
+            'recorded_by' => $this->user->id,
+        ]);
+        $payment = CarPartyPayment::create([
+            'sale_id' => $sale->id, 'car_id' => $this->car->id, 'branch_id' => $this->branchA->id, 'party_id' => $sale->party_id,
+            'payment_date' => '2026-09-21', 'amount_minor' => 100, 'method' => 'cash', 'recorded_by' => $this->user->id,
+        ]);
+
+        $this->assertRejected(fn () => DB::table('car_sales')->where('id', $sale->id)->update(['amount_minor' => 1]), 'immutable');
+        $this->assertRejected(fn () => DB::table('car_party_payments')->where('id', $payment->id)->delete(), 'immutable');
+        $this->assertRejected(fn () => DB::table('car_party_payments')->where('id', $payment->id)->update(['method' => 'barter']));
+        $this->assertRejected(fn () => CarSale::create([
+            'car_id' => $this->car->id, 'branch_id' => $this->branchA->id, 'party_id' => $sale->party_id,
+            'sale_date' => '2026-09-22', 'amount_minor' => 1, 'status_before_sale' => 'IN_STOCK', 'recorded_by' => $this->user->id,
+        ]));
+
+        $this->assertSame(85000000, $sale->fresh()->amount_minor);
     }
 
     public function test_car_with_financial_records_cannot_be_deleted_at_database_level(): void

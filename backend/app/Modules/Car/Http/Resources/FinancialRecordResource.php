@@ -2,16 +2,19 @@
 
 namespace App\Modules\Car\Http\Resources;
 
+use App\Modules\Car\Models\CarDealerPayment;
 use App\Modules\Car\Models\CarExpense;
+use App\Modules\Car\Models\CarPartyPayment;
 use App\Modules\Car\Models\CarPurchase;
+use App\Modules\Car\Models\CarSale;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Purchases and expenses. Amounts are decimal strings; reversed records stay visible.
+ * Purchases, expenses, sales and payments. Amounts are decimal strings; reversed records stay visible.
  *
- * @mixin CarPurchase|CarExpense
+ * @mixin CarPurchase|CarExpense|CarSale|CarPartyPayment|CarDealerPayment
  */
 class FinancialRecordResource extends JsonResource
 {
@@ -28,6 +31,24 @@ class FinancialRecordResource extends JsonResource
             'reversed_by' => $this->whenLoaded('reverser', fn () => $this->reverser?->only('id', 'name')),
             'reversal_reason' => $this->reversal_reason,
         ];
+
+        if ($this->resource instanceof CarSale) {
+            return [
+                'id' => $this->id,
+                'party' => $this->whenLoaded('party', fn () => $this->party->only('id', 'name', 'phone')),
+                'sale_date' => $this->sale_date->toDateString(),
+                'notes' => $this->notes,
+            ] + $common;
+        }
+
+        if ($this->resource instanceof CarPartyPayment || $this->resource instanceof CarDealerPayment) {
+            return [
+                'id' => $this->id,
+                'payment_date' => $this->payment_date->toDateString(),
+                'method' => $this->method->value,
+                'notes' => $this->notes,
+            ] + $common;
+        }
 
         if ($this->resource instanceof CarPurchase) {
             return [

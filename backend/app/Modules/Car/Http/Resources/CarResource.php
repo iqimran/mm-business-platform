@@ -2,7 +2,9 @@
 
 namespace App\Modules\Car\Http\Resources;
 
+use App\Modules\Car\Enums\CarStatus;
 use App\Modules\Car\Models\Car;
+use App\Modules\Car\Support\CarLifecycle;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -27,6 +29,8 @@ class CarResource extends JsonResource
             'registration_date' => $this->registration_date?->toDateString(),
             'mileage_km' => $this->mileage_km,
             'status' => $this->status->value,
+            // Manual transitions allowed from the current status (SOLD only via recording a sale).
+            'next_statuses' => array_map(fn (CarStatus $s) => $s->value, CarLifecycle::nextStatuses($this->status)),
             'notes' => $this->notes,
             'images_count' => $this->whenCounted('images'),
             'images' => CarImageResource::collection($this->whenLoaded('images')),

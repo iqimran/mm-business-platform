@@ -3,6 +3,7 @@
 namespace App\Modules\Car\Models;
 
 use App\Modules\Car\Concerns\Reversible;
+use App\Modules\Car\Enums\CarStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
@@ -10,11 +11,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Immutable purchase record; correct by reversing and recording a new purchase.
- * amount_minor is in minor units (2 decimals).
+ * Immutable sale record; at most one active sale per car. Correct by reversing (which
+ * restores the car's previous status) and recording a new sale.
  */
-#[Fillable(['car_id', 'branch_id', 'dealer_id', 'purchase_date', 'amount_minor', 'reference', 'notes', 'recorded_by'])]
-class CarPurchase extends Model
+#[Fillable(['car_id', 'branch_id', 'party_id', 'sale_date', 'amount_minor', 'status_before_sale', 'reference', 'notes', 'recorded_by'])]
+class CarSale extends Model
 {
     use HasUlids, Reversible;
 
@@ -23,8 +24,9 @@ class CarPurchase extends Model
     protected function casts(): array
     {
         return [
-            'purchase_date' => 'date',
+            'sale_date' => 'date',
             'amount_minor' => 'integer',
+            'status_before_sale' => CarStatus::class,
             'reversed_at' => 'datetime',
         ];
     }
@@ -34,13 +36,13 @@ class CarPurchase extends Model
         return $this->belongsTo(Car::class);
     }
 
-    public function payments(): HasMany
+    public function party(): BelongsTo
     {
-        return $this->hasMany(CarDealerPayment::class, 'purchase_id');
+        return $this->belongsTo(CarParty::class, 'party_id');
     }
 
-    public function dealer(): BelongsTo
+    public function payments(): HasMany
     {
-        return $this->belongsTo(CarDealer::class, 'dealer_id');
+        return $this->hasMany(CarPartyPayment::class, 'sale_id');
     }
 }

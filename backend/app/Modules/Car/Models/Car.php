@@ -75,6 +75,21 @@ class Car extends Model
         return $this->hasMany(CarExpense::class);
     }
 
+    public function sales(): HasMany
+    {
+        return $this->hasMany(CarSale::class);
+    }
+
+    public function partyPayments(): HasMany
+    {
+        return $this->hasMany(CarPartyPayment::class);
+    }
+
+    public function dealerPayments(): HasMany
+    {
+        return $this->hasMany(CarDealerPayment::class);
+    }
+
     public function documents(): HasMany
     {
         return $this->hasMany(CarDocument::class);
@@ -82,7 +97,8 @@ class Car extends Model
 
     public function hasFinancialRecords(): bool
     {
-        return $this->purchases()->exists() || $this->expenses()->exists();
+        return $this->purchases()->exists() || $this->expenses()->exists() || $this->sales()->exists()
+            || $this->partyPayments()->exists() || $this->dealerPayments()->exists();
     }
 
     public function images(): HasMany

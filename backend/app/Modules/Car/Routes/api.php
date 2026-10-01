@@ -5,7 +5,10 @@ use App\Modules\Car\Http\Controllers\CarDocumentController;
 use App\Modules\Car\Http\Controllers\CarExpenseController;
 use App\Modules\Car\Http\Controllers\CarImageController;
 use App\Modules\Car\Http\Controllers\CarPurchaseController;
+use App\Modules\Car\Http\Controllers\CarSaleController;
+use App\Modules\Car\Http\Controllers\CarStatusController;
 use App\Modules\Car\Http\Controllers\DealerController;
+use App\Modules\Car\Http\Controllers\DealerPaymentController;
 use App\Modules\Car\Http\Controllers\DocumentExpiryController;
 use App\Modules\Car\Http\Controllers\ExpenseTypeController;
 use App\Modules\Car\Http\Controllers\PartyController;
@@ -27,6 +30,17 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('cars/{car}/expenses', [CarExpenseController::class, 'index'])->name('cars.expenses.index');
         Route::post('cars/{car}/expenses', [CarExpenseController::class, 'store'])->name('cars.expenses.store');
         Route::post('cars/{car}/expenses/{expense}/reverse', [CarExpenseController::class, 'reverse'])->name('cars.expenses.reverse');
+
+        // Sale, party payments (Party Due) and dealer payments (Dealer Payable); immutable with reversal.
+        Route::get('cars/{car}/sale', [CarSaleController::class, 'show'])->name('cars.sale.show');
+        Route::post('cars/{car}/sales', [CarSaleController::class, 'store'])->name('cars.sales.store');
+        Route::post('cars/{car}/sales/{sale}/reverse', [CarSaleController::class, 'reverse'])->name('cars.sales.reverse');
+        Route::post('cars/{car}/party-payments', [CarSaleController::class, 'storePayment'])->name('cars.party-payments.store');
+        Route::post('cars/{car}/party-payments/{partyPayment}/reverse', [CarSaleController::class, 'reversePayment'])->name('cars.party-payments.reverse');
+        Route::get('cars/{car}/dealer-payments', [DealerPaymentController::class, 'index'])->name('cars.dealer-payments.index');
+        Route::post('cars/{car}/dealer-payments', [DealerPaymentController::class, 'store'])->name('cars.dealer-payments.store');
+        Route::post('cars/{car}/dealer-payments/{dealerPayment}/reverse', [DealerPaymentController::class, 'reverse'])->name('cars.dealer-payments.reverse');
+        Route::post('cars/{car}/status', [CarStatusController::class, 'update'])->name('cars.status.update');
 
         // Compliance documents (fitness, tax token, insurance, route permit, other).
         Route::get('cars/{car}/documents', [CarDocumentController::class, 'index'])->name('cars.documents.index');

@@ -12,6 +12,8 @@ import type { Car } from "@/features/cars/api";
 import { DocumentsSection } from "@/features/car-documents/components/documents-section";
 import { ExpensesSection } from "@/features/car-finance/components/expenses-section";
 import { PurchaseSection } from "@/features/car-finance/components/purchase-section";
+import { SaleSection } from "@/features/car-finance/components/sale-section";
+import { StatusControl } from "@/features/car-finance/components/status-control";
 import { CarForm } from "@/features/cars/components/car-form";
 import { CarImages } from "@/features/cars/components/car-images";
 import { CarStatusBadge } from "@/features/cars/components/car-status-badge";
@@ -109,6 +111,7 @@ export default function CarPage() {
         }
       />
       <FormAlert message={error} />
+      <StatusControl carId={data.id} status={data.status} nextStatuses={data.next_statuses ?? []} />
 
       {editing ? (
         <CarForm
@@ -127,6 +130,7 @@ export default function CarPage() {
       <DocumentsSection carId={data.id} />
       <PurchaseSection carId={data.id} carDealerId={data.dealer?.id} carSold={data.status === "SOLD" || data.status === "COMPLETED"} />
       <ExpensesSection carId={data.id} carCompleted={data.status === "COMPLETED"} />
+      <SaleSection carId={data.id} status={data.status} />
 
       <CarImages car={data} canEdit={canUpdate} />
 

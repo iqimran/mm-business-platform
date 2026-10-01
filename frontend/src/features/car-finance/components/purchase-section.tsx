@@ -19,6 +19,7 @@ import { formatAmount } from "@/lib/money";
 import type { Purchase } from "../api";
 import { usePurchase, useRecordPurchase, useReversePurchase } from "../hooks";
 import { purchaseSchema, today, type PurchaseValues } from "../schemas";
+import { DealerPayments } from "./dealer-payments";
 import { ReverseButton } from "./reverse-button";
 
 function PurchaseForm({ carId, defaultDealerId, onDone }: { carId: string; defaultDealerId?: string; onDone: () => void }) {
@@ -151,6 +152,7 @@ export function PurchaseSection({ carId, carDealerId, carSold }: { carId: string
             {can("car.purchase.reverse") && !carSold ? (
               <ReverseButton label="purchase" onReverse={(reason) => reverse.mutateAsync({ id: active.id, reason })} />
             ) : null}
+            <DealerPayments carId={carId} />
           </>
         ) : purchase.data && !recording ? (
           <div className="flex flex-wrap items-center justify-between gap-2">

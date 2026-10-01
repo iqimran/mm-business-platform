@@ -2,14 +2,25 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  changeCarStatus,
+  fetchDealerPayments,
   fetchExpenses,
   fetchPurchase,
+  fetchSale,
+  recordDealerPayment,
   recordExpense,
+  recordPartyPayment,
   recordPurchase,
+  recordSale,
+  reverseDealerPayment,
   reverseExpense,
+  reversePartyPayment,
   reversePurchase,
+  reverseSale,
   type ExpenseInput,
+  type PaymentInput,
   type PurchaseInput,
+  type SaleInput,
 } from "./api";
 
 const financeKey = (carId: string) => ["cars", "finance", carId] as const;
@@ -46,4 +57,40 @@ export function useRecordExpense(carId: string) {
 
 export function useReverseExpense(carId: string) {
   return useFinanceMutation(({ id, reason }: { id: string; reason: string }) => reverseExpense(carId, id, reason));
+}
+
+export function useSale(carId: string, enabled: boolean) {
+  return useQuery({ queryKey: [...financeKey(carId), "sale"], queryFn: () => fetchSale(carId), enabled });
+}
+
+export function useDealerPayments(carId: string, enabled: boolean) {
+  return useQuery({ queryKey: [...financeKey(carId), "dealer-payments"], queryFn: () => fetchDealerPayments(carId), enabled });
+}
+
+export function useRecordSale(carId: string) {
+  return useFinanceMutation((input: SaleInput) => recordSale(carId, input));
+}
+
+export function useReverseSale(carId: string) {
+  return useFinanceMutation(({ id, reason }: { id: string; reason: string }) => reverseSale(carId, id, reason));
+}
+
+export function useRecordPartyPayment(carId: string) {
+  return useFinanceMutation((input: PaymentInput) => recordPartyPayment(carId, input));
+}
+
+export function useReversePartyPayment(carId: string) {
+  return useFinanceMutation(({ id, reason }: { id: string; reason: string }) => reversePartyPayment(carId, id, reason));
+}
+
+export function useRecordDealerPayment(carId: string) {
+  return useFinanceMutation((input: PaymentInput) => recordDealerPayment(carId, input));
+}
+
+export function useReverseDealerPayment(carId: string) {
+  return useFinanceMutation(({ id, reason }: { id: string; reason: string }) => reverseDealerPayment(carId, id, reason));
+}
+
+export function useChangeCarStatus(carId: string) {
+  return useFinanceMutation(({ status, reason }: { status: string; reason?: string }) => changeCarStatus(carId, status, reason));
 }
