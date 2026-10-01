@@ -7,7 +7,6 @@ use App\Modules\Car\Enums\CarStatus;
 use App\Modules\Car\Models\Car;
 use App\Modules\Car\Services\CarFinancials;
 use App\Modules\Car\Support\CarLifecycle;
-use App\Modules\Car\Support\FinancialFormulas;
 use App\Modules\Identity\Models\User;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -37,7 +36,7 @@ class ChangeCarStatus
 
             if ($to === CarStatus::Completed) {
                 $sale = $this->financials->activeSale($car) ?? throw new ConflictHttpException('This car has no active sale.');
-                $due = FinancialFormulas::partyDue($sale->amount_minor, $this->financials->partyReceived($sale));
+                $due = $this->financials->partyOutstanding($sale);
                 if ($due !== 0) {
                     throw new ConflictHttpException('The sale cannot be completed while the party still owes '.Money::toDecimal($due).'.');
                 }

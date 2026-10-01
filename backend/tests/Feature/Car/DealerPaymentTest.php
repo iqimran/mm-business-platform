@@ -34,11 +34,11 @@ class DealerPaymentTest extends CarTestCase
         $user = $this->salesA();
 
         $this->actingAs($user)->getJson("/api/v1/cars/{$this->car->id}/dealer-payments")
-            ->assertJsonPath('data.dealer', ['purchase_amount' => '700000.00', 'paid' => '0.00', 'payable' => '700000.00']);
+            ->assertJsonPath('data.dealer', ['purchase_amount' => '700000.00', 'paid' => '0.00', 'payable' => '700000.00', 'is_settled' => false]);
 
         $this->actingAs($user)->payDealer('500000')->assertCreated()->assertJsonPath('data.dealer.payable', '200000.00');
         $this->actingAs($user)->payDealer('150000')->assertJsonPath('data.dealer.payable', '50000.00');
-        $this->actingAs($user)->payDealer('50000')->assertJsonPath('data.dealer.payable', '0.00');
+        $this->actingAs($user)->payDealer('50000')->assertJsonPath('data.dealer.payable', '0.00')->assertJsonPath('data.dealer.is_settled', true);
 
         $this->actingAs($user)->getJson("/api/v1/cars/{$this->car->id}/dealer-payments")->assertJsonCount(3, 'data.items');
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.dealer_payment_recorded', 'branch_id' => $this->branchA->id]);

@@ -76,7 +76,7 @@ class CarSaleTest extends CarTestCase
 
         $this->saleView($user)
             ->assertJsonPath('data.status', 'SOLD')
-            ->assertJsonPath('data.party', ['amount' => '850000.00', 'received' => '0.00', 'due' => '850000.00'])
+            ->assertJsonPath('data.party', ['amount' => '850000.00', 'received' => '0.00', 'due' => '850000.00', 'is_settled' => false])
             ->assertJsonPath('data.profit', '95000.00');
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.sale_recorded', 'branch_id' => $this->branchA->id]);
@@ -124,9 +124,9 @@ class CarSaleTest extends CarTestCase
 
         $this->actingAs($user)->pay('500000')
             ->assertCreated()
-            ->assertJsonPath('data.party', ['amount' => '850000.00', 'received' => '500000.00', 'due' => '350000.00']);
+            ->assertJsonPath('data.party', ['amount' => '850000.00', 'received' => '500000.00', 'due' => '350000.00', 'is_settled' => false]);
         $this->actingAs($user)->pay('200000.50')->assertJsonPath('data.party.due', '149999.50');
-        $this->actingAs($user)->pay('149999.50')->assertJsonPath('data.party.due', '0.00');
+        $this->actingAs($user)->pay('149999.50')->assertJsonPath('data.party.due', '0.00')->assertJsonPath('data.party.is_settled', true);
 
         $this->saleView($user)->assertJsonCount(3, 'data.payments');
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.party_payment_recorded', 'branch_id' => $this->branchA->id]);

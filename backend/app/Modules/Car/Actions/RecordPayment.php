@@ -9,7 +9,7 @@ use App\Modules\Car\Models\CarDealerPayment;
 use App\Modules\Car\Models\CarPartyPayment;
 use App\Modules\Car\Models\CarPurchase;
 use App\Modules\Car\Models\CarSale;
-use App\Modules\Car\Support\FinancialFormulas;
+use App\Modules\Car\Services\CarFinancials;
 use App\Modules\Identity\Models\User;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +24,10 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
  */
 class RecordPayment
 {
-    public function __construct(private readonly AuditLogger $audit) {}
+    public function __construct(
+        private readonly AuditLogger $audit,
+        private readonly CarFinancials $financials,
+    ) {}
 
     /**
      * @param  'party'|'dealer'  $kind
@@ -43,15 +46,13 @@ class RecordPayment
                 /** @var CarSale|null $obligation */
                 $obligation = $car->sales()->active()->lockForUpdate()->first()
                     ?? throw new ConflictHttpException('This car has no active sale to receive payments for.');
-                $paid = (int) $obligation->payments()->active()->sum('amount_minor');
-                $outstanding = FinancialFormulas::partyDue($obligation->amount_minor, $paid);
+                $outstanding = $this->financials->partyOutstanding($obligation);
                 $label = 'party due';
             } else {
                 /** @var CarPurchase|null $obligation */
                 $obligation = $car->purchases()->active()->lockForUpdate()->first()
                     ?? throw new ConflictHttpException('This car has no active purchase to pay the dealer for.');
-                $paid = (int) $obligation->payments()->active()->sum('amount_minor');
-                $outstanding = FinancialFormulas::dealerPayable($obligation->amount_minor, $paid);
+                $outstanding = $this->financials->dealerOutstanding($obligation);
                 $label = 'dealer payable';
             }
 

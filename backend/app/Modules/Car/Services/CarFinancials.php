@@ -5,16 +5,28 @@ namespace App\Modules\Car\Services;
 use App\Modules\Car\Models\Car;
 use App\Modules\Car\Models\CarPurchase;
 use App\Modules\Car\Models\CarSale;
+use App\Modules\Car\Support\CarFinancialSnapshot;
 use App\Modules\Car\Support\FinancialFormulas;
 use App\Modules\Shared\Support\Money;
 
 /**
- * Per-car financial position from active (non-reversed) records. The three concepts are
- * computed independently and returned in separate blocks; they are never combined.
+ * The single source of per-car financial figures. Every amount comes from active
+ * (non-reversed) records, and every formula from FinancialFormulas. Actions, controllers
+ * and the frontend must use this service instead of summing or subtracting themselves.
  */
 class CarFinancials
 {
-    public function __construct(private readonly CarCosts $costs) {}
+    // ---- Inputs (sums of active records, minor units) ----
+
+    public function purchaseCost(Car $car): int
+    {
+        return (int) $car->purchases()->active()->sum('amount_minor');
+    }
+
+    public function expensesTotal(Car $car): int
+    {
+        return (int) $car->expenses()->active()->sum('amount_minor');
+    }
 
     public function activeSale(Car $car): ?CarSale
     {
@@ -26,68 +38,113 @@ class CarFinancials
         return $car->purchases()->active()->first();
     }
 
-    /** Payments received against the sale (Party Due input). */
     public function partyReceived(CarSale $sale): int
     {
         return (int) $sale->payments()->active()->sum('amount_minor');
     }
 
-    /** Payments made against the purchase (Dealer Payable input). */
     public function dealerPaid(CarPurchase $purchase): int
     {
         return (int) $purchase->payments()->active()->sum('amount_minor');
     }
 
-    /**
-     * @return array{amount: string, received: string, due: string}|null
-     */
-    public function partyPosition(Car $car): ?array
+    // ---- Outstanding amounts (used by payment validation and completion) ----
+
+    /** Party Due of a sale: what the customer still owes. */
+    public function partyOutstanding(CarSale $sale): int
     {
-        $sale = $this->activeSale($car);
-        if ($sale === null) {
-            return null;
-        }
-
-        $received = $this->partyReceived($sale);
-
-        return [
-            'amount' => Money::toDecimal($sale->amount_minor),
-            'received' => Money::toDecimal($received),
-            'due' => Money::toDecimal(FinancialFormulas::partyDue($sale->amount_minor, $received)),
-        ];
+        return FinancialFormulas::partyDue($sale->amount_minor, $this->partyReceived($sale));
     }
 
-    /**
-     * @return array{purchase_amount: string, paid: string, payable: string}|null
-     */
-    public function dealerPosition(Car $car): ?array
+    /** Dealer Payable of a purchase: what is still owed to the dealer. */
+    public function dealerOutstanding(CarPurchase $purchase): int
     {
+        return FinancialFormulas::dealerPayable($purchase->amount_minor, $this->dealerPaid($purchase));
+    }
+
+    // ---- Full position ----
+
+    public function snapshot(Car $car): CarFinancialSnapshot
+    {
+        $purchaseCost = $this->purchaseCost($car);
+        $expenses = $this->expensesTotal($car);
+
+        $sale = $this->activeSale($car);
+        $received = $sale ? $this->partyReceived($sale) : null;
+
         $purchase = $this->activePurchase($car);
-        if ($purchase === null) {
-            return null;
-        }
+        $paid = $purchase ? $this->dealerPaid($purchase) : null;
 
-        $paid = $this->dealerPaid($purchase);
+        return new CarFinancialSnapshot(
+            purchaseCost: $purchaseCost,
+            expensesTotal: $expenses,
+            totalInvestment: FinancialFormulas::totalInvestment($purchaseCost, $expenses),
+            salePrice: $sale?->amount_minor,
+            partyReceived: $received,
+            partyDue: $sale ? FinancialFormulas::partyDue($sale->amount_minor, $received) : null,
+            dealerPurchaseAmount: $purchase?->amount_minor,
+            dealerPaid: $paid,
+            dealerPayable: $purchase ? FinancialFormulas::dealerPayable($purchase->amount_minor, $paid) : null,
+            profit: $sale ? FinancialFormulas::profit($sale->amount_minor, $purchaseCost, $expenses) : null,
+        );
+    }
+
+    // ---- API shapes (decimal strings) ----
+
+    /**
+     * @return array{purchase_cost: string, expenses_total: string, total_investment: string}
+     */
+    public function costs(Car $car, ?CarFinancialSnapshot $snapshot = null): array
+    {
+        $s = $snapshot ?? $this->snapshot($car);
 
         return [
-            'purchase_amount' => Money::toDecimal($purchase->amount_minor),
-            'paid' => Money::toDecimal($paid),
-            'payable' => Money::toDecimal(FinancialFormulas::dealerPayable($purchase->amount_minor, $paid)),
+            'purchase_cost' => Money::toDecimal($s->purchaseCost),
+            'expenses_total' => Money::toDecimal($s->expensesTotal),
+            'total_investment' => Money::toDecimal($s->totalInvestment),
         ];
     }
 
-    /** Profit = Sale Price - Purchase Cost - Car Expenses; null until the car is sold. */
-    public function profit(Car $car): ?string
+    /**
+     * @return array{amount: string, received: string, due: string, is_settled: bool}|null
+     */
+    public function partyPosition(Car $car, ?CarFinancialSnapshot $snapshot = null): ?array
     {
-        $sale = $this->activeSale($car);
-        if ($sale === null) {
+        $s = $snapshot ?? $this->snapshot($car);
+        if (! $s->isSold()) {
             return null;
         }
 
-        return Money::toDecimal(FinancialFormulas::profit(
-            $sale->amount_minor,
-            $this->costs->purchaseCost($car),
-            $this->costs->expensesTotal($car),
-        ));
+        return [
+            'amount' => Money::toDecimal($s->salePrice),
+            'received' => Money::toDecimal($s->partyReceived),
+            'due' => Money::toDecimal($s->partyDue),
+            'is_settled' => $s->isPartySettled(),
+        ];
+    }
+
+    /**
+     * @return array{purchase_amount: string, paid: string, payable: string, is_settled: bool}|null
+     */
+    public function dealerPosition(Car $car, ?CarFinancialSnapshot $snapshot = null): ?array
+    {
+        $s = $snapshot ?? $this->snapshot($car);
+        if ($s->dealerPurchaseAmount === null) {
+            return null;
+        }
+
+        return [
+            'purchase_amount' => Money::toDecimal($s->dealerPurchaseAmount),
+            'paid' => Money::toDecimal($s->dealerPaid),
+            'payable' => Money::toDecimal($s->dealerPayable),
+            'is_settled' => $s->isDealerSettled(),
+        ];
+    }
+
+    public function profit(Car $car, ?CarFinancialSnapshot $snapshot = null): ?string
+    {
+        $s = $snapshot ?? $this->snapshot($car);
+
+        return $s->profit === null ? null : Money::toDecimal($s->profit);
     }
 }

@@ -10,7 +10,7 @@ use App\Modules\Car\Http\Requests\ReverseRecordRequest;
 use App\Modules\Car\Http\Resources\FinancialRecordResource;
 use App\Modules\Car\Models\Car;
 use App\Modules\Car\Models\CarPurchase;
-use App\Modules\Car\Services\CarCosts;
+use App\Modules\Car\Services\CarFinancials;
 use App\Modules\Shared\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +19,7 @@ class CarPurchaseController extends Controller
 {
     private const RELATIONS = ['dealer:id,name', 'recorder:id,name', 'reverser:id,name'];
 
-    public function __construct(private readonly CarCosts $costs) {}
+    public function __construct(private readonly CarFinancials $financials) {}
 
     /**
      * Active purchase, full history (including reversed records) and cost summary.
@@ -34,7 +34,7 @@ class CarPurchaseController extends Controller
         return ApiResponse::success([
             'active' => $active ? FinancialRecordResource::make($active)->resolve() : null,
             'history' => FinancialRecordResource::collection($history)->resolve(),
-            'costs' => $this->costs->summary($car),
+            'costs' => $this->financials->costs($car),
         ]);
     }
 

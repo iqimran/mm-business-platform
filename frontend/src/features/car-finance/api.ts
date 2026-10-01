@@ -99,10 +99,10 @@ export type Payment = FinancialRecord & {
 };
 
 /** Party Due = sale amount - payments received. */
-export type PartyPosition = { amount: string; received: string; due: string };
+export type PartyPosition = { amount: string; received: string; due: string; is_settled: boolean };
 
 /** Dealer Payable = purchase amount - payments made. */
-export type DealerPosition = { purchase_amount: string; paid: string; payable: string };
+export type DealerPosition = { purchase_amount: string; paid: string; payable: string; is_settled: boolean };
 
 export type SaleView = {
   status: string;
@@ -161,4 +161,58 @@ export function changeCarStatus(carId: string, status: string, reason?: string) 
     method: "POST",
     body: reason ? { status, reason } : { status },
   });
+}
+
+// ---- Financial intelligence (all figures computed by the backend) ----
+
+export type FinancialSummary = {
+  car_id: string;
+  status: string;
+  /** Null fields are hidden by permission. */
+  costs: { purchase_cost: string | null; expenses_total: string | null; total_investment: string | null } | null;
+  party: PartyPosition | null;
+  dealer: DealerPosition | null;
+  profit: string | null;
+};
+
+export type TimelineEvent = {
+  type: string;
+  date: string;
+  recorded_at: string;
+  amount: string | null;
+  description: string;
+  reference: string | null;
+  by: string | null;
+  is_reversal: boolean;
+};
+
+export type CarDashboard = {
+  cars_by_status: Record<string, number>;
+  stock: { cars: number; purchase_cost: string; expenses_total: string; total_investment: string } | null;
+  receivables: { sale_amount: string; received: string; party_due: string } | null;
+  payables: { purchase_amount: string; paid: string; dealer_payable: string } | null;
+  sales: {
+    from: string | null;
+    to: string | null;
+    count: number;
+    sale_total: string;
+    profit: { purchase_cost: string; expenses_total: string; profit: string } | null;
+  } | null;
+};
+
+export function fetchFinancialSummary(carId: string) {
+  return apiRequest<FinancialSummary>(`${car(carId)}/financial-summary`);
+}
+
+export function fetchTimeline(carId: string) {
+  return apiRequest<TimelineEvent[]>(`${car(carId)}/timeline`);
+}
+
+export function fetchCarDashboard(filters: { from?: string; to?: string; branchId?: string }) {
+  const params = new URLSearchParams();
+  if (filters.from) params.set("from", filters.from);
+  if (filters.to) params.set("to", filters.to);
+  if (filters.branchId) params.set("branch_id", filters.branchId);
+
+  return apiRequest<CarDashboard>(`/car-dashboard?${params}`);
 }

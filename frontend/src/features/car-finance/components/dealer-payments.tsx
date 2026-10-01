@@ -27,7 +27,7 @@ export function DealerPayments({ carId }: { carId: string }) {
     <div className="flex flex-col gap-3 border-t pt-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-medium">Payments to dealer</h3>
-        {dealer && can("car.dealer_payment.create") && dealer.payable !== "0.00" && !paying ? (
+        {dealer && can("car.dealer_payment.create") && !dealer.is_settled && !paying ? (
           <Button variant="outline" size="sm" onClick={() => setPaying(true)}>
             <Plus aria-hidden />
             Pay dealer

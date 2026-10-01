@@ -11,6 +11,8 @@ import { usePermissions } from "@/features/auth/hooks";
 import type { Car } from "@/features/cars/api";
 import { DocumentsSection } from "@/features/car-documents/components/documents-section";
 import { ExpensesSection } from "@/features/car-finance/components/expenses-section";
+import { FinancialSummaryCard } from "@/features/car-finance/components/financial-summary";
+import { TimelineCard } from "@/features/car-finance/components/timeline";
 import { PurchaseSection } from "@/features/car-finance/components/purchase-section";
 import { SaleSection } from "@/features/car-finance/components/sale-section";
 import { StatusControl } from "@/features/car-finance/components/status-control";
@@ -127,11 +129,13 @@ export default function CarPage() {
         <Details car={data} />
       )}
 
+      <FinancialSummaryCard carId={data.id} />
       <DocumentsSection carId={data.id} />
       <PurchaseSection carId={data.id} carDealerId={data.dealer?.id} carSold={data.status === "SOLD" || data.status === "COMPLETED"} />
       <ExpensesSection carId={data.id} carCompleted={data.status === "COMPLETED"} />
       <SaleSection carId={data.id} status={data.status} />
 
+      <TimelineCard carId={data.id} />
       <CarImages car={data} canEdit={canUpdate} />
 
     </>

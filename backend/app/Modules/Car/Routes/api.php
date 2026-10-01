@@ -3,6 +3,7 @@
 use App\Modules\Car\Http\Controllers\CarController;
 use App\Modules\Car\Http\Controllers\CarDocumentController;
 use App\Modules\Car\Http\Controllers\CarExpenseController;
+use App\Modules\Car\Http\Controllers\CarFinancialsController;
 use App\Modules\Car\Http\Controllers\CarImageController;
 use App\Modules\Car\Http\Controllers\CarPurchaseController;
 use App\Modules\Car\Http\Controllers\CarSaleController;
@@ -48,6 +49,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('cars/{car}/documents/{document}', [CarDocumentController::class, 'update'])->name('cars.documents.update');
         Route::delete('cars/{car}/documents/{document}', [CarDocumentController::class, 'destroy'])->name('cars.documents.destroy');
     });
+
+    // Financial intelligence (read-only; figures computed by CarFinancials / CarPortfolio).
+    Route::get('car-dashboard', [CarFinancialsController::class, 'dashboard'])->name('car-dashboard');
+    Route::get('cars/{car}/financial-summary', [CarFinancialsController::class, 'summary'])->name('cars.financial-summary');
+    Route::get('cars/{car}/timeline', [CarFinancialsController::class, 'timeline'])->name('cars.timeline');
 
     Route::get('car-documents/expiring', [DocumentExpiryController::class, 'index'])->name('car-documents.expiring');
     Route::get('car-documents/expiry-summary', [DocumentExpiryController::class, 'summary'])->name('car-documents.expiry-summary');

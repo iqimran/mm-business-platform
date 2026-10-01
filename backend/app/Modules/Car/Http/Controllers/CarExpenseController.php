@@ -10,7 +10,7 @@ use App\Modules\Car\Http\Requests\ReverseRecordRequest;
 use App\Modules\Car\Http\Resources\FinancialRecordResource;
 use App\Modules\Car\Models\Car;
 use App\Modules\Car\Models\CarExpense;
-use App\Modules\Car\Services\CarCosts;
+use App\Modules\Car\Services\CarFinancials;
 use App\Modules\Shared\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +19,7 @@ class CarExpenseController extends Controller
 {
     private const RELATIONS = ['expenseType:id,name', 'recorder:id,name', 'reverser:id,name'];
 
-    public function __construct(private readonly CarCosts $costs) {}
+    public function __construct(private readonly CarFinancials $financials) {}
 
     /**
      * All expenses (reversed ones flagged) plus the cost summary from active records.
@@ -34,7 +34,7 @@ class CarExpenseController extends Controller
 
         return ApiResponse::success([
             'items' => FinancialRecordResource::collection($expenses)->resolve(),
-            'costs' => $this->costs->summary($car),
+            'costs' => $this->financials->costs($car),
         ]);
     }
 

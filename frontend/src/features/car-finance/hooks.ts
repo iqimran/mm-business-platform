@@ -3,10 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   changeCarStatus,
+  fetchCarDashboard,
   fetchDealerPayments,
   fetchExpenses,
+  fetchFinancialSummary,
   fetchPurchase,
   fetchSale,
+  fetchTimeline,
   recordDealerPayment,
   recordExpense,
   recordPartyPayment,
@@ -93,4 +96,16 @@ export function useReverseDealerPayment(carId: string) {
 
 export function useChangeCarStatus(carId: string) {
   return useFinanceMutation(({ status, reason }: { status: string; reason?: string }) => changeCarStatus(carId, status, reason));
+}
+
+export function useFinancialSummary(carId: string) {
+  return useQuery({ queryKey: [...financeKey(carId), "summary"], queryFn: () => fetchFinancialSummary(carId) });
+}
+
+export function useTimeline(carId: string) {
+  return useQuery({ queryKey: [...financeKey(carId), "timeline"], queryFn: () => fetchTimeline(carId) });
+}
+
+export function useCarDashboard(filters: { from?: string; to?: string; branchId?: string }, enabled: boolean) {
+  return useQuery({ queryKey: ["cars", "dashboard", filters], queryFn: () => fetchCarDashboard(filters), enabled });
 }

@@ -114,7 +114,6 @@ export function SaleSection({ carId, status }: { carId: string; status: CarStatu
   const data = sale.data;
   const active = data?.active;
   const completed = status === "COMPLETED";
-  const due = data?.party?.due ?? "0.00";
   const reversedSales = data?.history.filter((s) => s.is_reversed) ?? [];
 
   return (
@@ -124,7 +123,7 @@ export function SaleSection({ carId, status }: { carId: string; status: CarStatu
           <CardTitle>Sale & customer payments</CardTitle>
           <CardDescription>Party due = sale amount − payments received.</CardDescription>
         </div>
-        {active && can("car.payment.create") && !completed && due !== "0.00" && !paying ? (
+        {active && can("car.payment.create") && !completed && data?.party && !data.party.is_settled && !paying ? (
           <Button variant="outline" size="sm" onClick={() => setPaying(true)}>
             <Plus aria-hidden />
             Receive payment
