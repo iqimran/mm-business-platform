@@ -20,8 +20,9 @@ export function useDailySummary(filters: SummaryFilters) {
   });
 }
 
-export function useExpenseCategories(activeOnly: boolean) {
-  return useQuery({ queryKey: ["restaurant/expense-categories", "options", activeOnly], queryFn: () => fetchExpenseCategories(activeOnly), staleTime: 60_000 });
+/** Disabled (no request) when the user may not view expense categories. */
+export function useExpenseCategories(activeOnly: boolean, enabled = true) {
+  return useQuery({ queryKey: ["restaurant/expense-categories", "options", activeOnly], queryFn: () => fetchExpenseCategories(activeOnly), enabled, staleTime: 60_000 });
 }
 
 function useExpenseMutation<TArgs>(mutationFn: (args: TArgs) => Promise<unknown>) {

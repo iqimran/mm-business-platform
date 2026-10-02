@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { lineTotalMinor, saleTotalMinor, toDecimal, toMinor, toQuantity } from "./money";
-import { paymentSchema, saleErrorFields, saleSchema, toSaleInput, today, type SaleValues } from "./schemas";
+import { lineTotalMinor, saleTotalMinor, toQuantity } from "./money";
+import { saleErrorFields, saleSchema, toSaleInput, type SaleValues } from "./schemas";
+import { toDecimal, toMinor } from "@/features/restaurant-common/money";
 
 const line = (quantity: string, unit_price: string, id = "m1") => ({ menu_item_id: id, name: "Dish", unit_price, quantity });
 
@@ -116,33 +117,5 @@ describe("saleErrorFields", () => {
       ["branch_id", "The selected branch is invalid."],
       ["root", "Oops."],
     ]);
-  });
-});
-
-describe("payment form rules", () => {
-  const payment = (o: Record<string, string> = {}) => paymentSchema.safeParse({ payment_date: today(), amount: "10", method: "cash", reference: "", notes: "", ...o });
-
-  it("validates amount and date", () => {
-    expect(payment().success).toBe(true);
-    for (const amount of ["", "0", "0.00", "-1", "1.234", "abc"]) expect(payment({ amount }).success, amount).toBe(false);
-    expect(payment({ payment_date: "2999-01-01" }).success).toBe(false);
-    expect(payment({ method: "gold" }).success).toBe(false);
-  });
-});
-
-describe("payment against a known due", () => {
-  it("rejects amounts above the remaining due", async () => {
-    const { paymentSchemaFor } = await import("./schemas");
-    const parse = (amount: string, due = "17999.50") =>
-      paymentSchemaFor(due).safeParse({ payment_date: today(), amount, method: "cash", reference: "", notes: "" });
-
-    expect(parse("17999.50").success).toBe(true);
-    expect(parse("0.01").success).toBe(true);
-    const over = parse("17999.51");
-    expect(over.success).toBe(false);
-    expect(over.success ? null : over.error.issues[0].message).toBe("The amount exceeds the remaining due of 17999.50.");
-    expect(parse("1", "0.00").success).toBe(false);
-    expect(parse("0").success).toBe(false);
-    expect(parse("-1").success).toBe(false);
   });
 });

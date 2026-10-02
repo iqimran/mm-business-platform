@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNotify } from "@/components/common/notifications";
 import { useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { FieldError, FormAlert } from "@/components/common/page-header";
@@ -16,6 +17,8 @@ import { useSaveRecord } from "../hooks";
 import { buildSchema, toPayload, type FormValues } from "../schemas";
 import { BranchSelect } from "./branch-select";
 import { CategorySelect } from "./category-select";
+
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 function FieldInput({ field, id, invalid, record, register }: {
   field: MasterField;
@@ -44,6 +47,7 @@ function FieldInput({ field, id, invalid, record, register }: {
 
 export function MasterRecordForm({ resource, record, onDone }: { resource: MasterResource; record?: MasterRecord; onDone: () => void }) {
   const save = useSaveRecord(resource);
+  const notify = useNotify();
   const schema = useMemo(() => buildSchema(resource), [resource]);
   const fieldNames = resource.fields.map((f) => f.name);
   const prefix = `${resource.path.replace("/", "-")}-${record?.id ?? "new"}`;
@@ -65,6 +69,7 @@ export function MasterRecordForm({ resource, record, onDone }: { resource: Maste
   const submit = handleSubmit(async (values) => {
     try {
       await save.mutateAsync({ id: record?.id, input: toPayload(resource, values) });
+      notify(record ? `${capitalize(resource.singular)} saved.` : `${capitalize(resource.singular)} added.`);
       onDone();
     } catch (error) {
       applyApiErrors(error, setError, [...fieldNames, "is_active"]);

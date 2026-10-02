@@ -4,6 +4,7 @@ import { useState } from "react";
 import { NativeSelect } from "@/components/common/native-select";
 import { Pager } from "@/components/common/pager";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "@/components/ui/table";
+import { usePermissions } from "@/features/auth/hooks";
 import { useExpenseCategories } from "@/features/restaurant-expenses/hooks";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
@@ -13,7 +14,9 @@ import { nextSort } from "../period";
 import { SortHead, Totals, type Period } from "./report-controls";
 
 export function ExpensesReport({ period }: { period: Period }) {
-  const categories = useExpenseCategories(false);
+  const { can } = usePermissions();
+  const canViewCategories = can("restaurant.expense_category.view");
+  const categories = useExpenseCategories(false, canViewCategories);
   const [view, setView] = useState<{ groupBy: "day" | "category"; sort: string; direction: "asc" | "desc"; page: number; categoryId: string }>({
     groupBy: "category", sort: "total", direction: "desc", page: 1, categoryId: "",
   });
@@ -35,14 +38,16 @@ export function ExpensesReport({ period }: { period: Period }) {
           <option value="category">By category</option>
           <option value="day">By day</option>
         </NativeSelect>
-        <NativeSelect aria-label="Category filter" className="w-44" value={view.categoryId} onChange={(e) => setView({ ...view, categoryId: e.target.value, page: 1 })}>
-          <option value="">All categories</option>
-          {(categories.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </NativeSelect>
+        {canViewCategories ? (
+          <NativeSelect aria-label="Category filter" className="w-44" value={view.categoryId} onChange={(e) => setView({ ...view, categoryId: e.target.value, page: 1 })}>
+            <option value="">All categories</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </NativeSelect>
+        ) : null}
       </div>
 
       {report.isPending ? <p className="text-sm text-muted-foreground">Loading report…</p> : null}

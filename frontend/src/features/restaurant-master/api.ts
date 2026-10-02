@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/features/restaurant-common/lookups";
 import { apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
 import type { MasterResource } from "./config";
@@ -47,18 +48,7 @@ export function deleteRecord(resource: MasterResource, id: string) {
   return apiRequest<Record<string, never>>(`/${resource.path}/${encodeURIComponent(id)}`, { method: "DELETE" });
 }
 
-/**
- * Menu categories for dropdowns (a small catalog): loads every page so nothing is silently cut off.
- * Bounded to 1,000 records as a safety net.
- */
-export async function fetchMenuCategories(activeOnly: boolean) {
-  const all: MasterRecord[] = [];
-  for (let page = 1; page <= 10; page++) {
-    const params = new URLSearchParams({ per_page: "100", page: String(page) });
-    if (activeOnly) params.set("is_active", "1");
-    const result = await apiRequest<Paginated<MasterRecord>>(`/restaurant/menu-categories?${params}`);
-    all.push(...result.items);
-    if (page >= result.pagination.last_page) break;
-  }
-  return all;
+/** Menu categories for dropdowns (a small catalog, all pages). */
+export function fetchMenuCategories(activeOnly: boolean) {
+  return fetchAllPages<MasterRecord>("/restaurant/menu-categories", activeOnly);
 }

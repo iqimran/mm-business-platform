@@ -6,7 +6,8 @@ import { NativeSelect } from "@/components/common/native-select";
 import { Pager } from "@/components/common/pager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { bookingStatusLabels } from "@/features/restaurant-bookings/api";
-import { BookingPaymentBadge, BookingStatusBadge } from "@/features/restaurant-bookings/components/booking-status-badge";
+import { BookingStatusBadge } from "@/features/restaurant-bookings/components/booking-status-badge";
+import { PaymentStatusBadge } from "@/features/restaurant-common/components/payment-status-badge";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { BookingRow, BookingTotals, ReportQuery } from "../api";
@@ -84,7 +85,7 @@ export function BookingsReport({ period }: { period: Period }) {
                     <TableCell>
                       <div className="flex flex-wrap gap-1">
                         <BookingStatusBadge booking={b} />
-                        {b.payment_status ? <BookingPaymentBadge booking={{ status: b.status, payment_status: b.payment_status }} /> : null}
+                        <PaymentStatusBadge status={b.payment_status} />
                       </div>
                     </TableCell>
                   </TableRow>

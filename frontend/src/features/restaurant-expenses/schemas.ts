@@ -1,8 +1,7 @@
 import { z } from "zod";
-import { today } from "@/features/restaurant-sales/schemas";
+import { amountText } from "@/features/restaurant-common/payments";
 import type { ExpenseInput } from "./api";
-
-const AMOUNT = /^(0|[1-9]\d{0,11})(\.\d{1,2})?$/;
+import { today } from "@/features/restaurant-common/dates";
 
 export const expenseSchema = z.object({
   branch_id: z.string().min(1, "Select a branch."),
@@ -12,12 +11,7 @@ export const expenseSchema = z.object({
     .string()
     .min(1, "Expense date is required.")
     .refine((v) => v <= today(), "The expense date cannot be in the future."),
-  amount: z
-    .string()
-    .trim()
-    .min(1, "Amount is required.")
-    .regex(AMOUNT, "Enter an amount like 1500 or 1500.50 (no commas).")
-    .refine((v) => /[1-9]/.test(v), "Amount must be greater than zero."),
+  amount: amountText("Amount"),
   description: z.string().trim().max(255, "Description must be at most 255 characters."),
   reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
 });

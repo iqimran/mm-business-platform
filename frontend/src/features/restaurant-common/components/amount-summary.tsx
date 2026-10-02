@@ -1,7 +1,7 @@
 import { formatAmount } from "@/lib/money";
 
-/** Total / Paid / Due summary (values are backend-computed decimal strings, or previews). */
-export function SaleFigures({ total, paid, due, labels = ["Total", "Paid", "Due"] }: { total: string; paid: string; due: string; labels?: [string, string, string] }) {
+/** Amount / paid / due summary (values are backend-computed decimal strings, or clearly labelled previews). */
+export function AmountSummary({ total, paid, due, labels = ["Total", "Paid", "Due"] }: { total: string; paid: string; due: string; labels?: [string, string, string] }) {
   const items: [string, string, boolean][] = [
     [labels[0], total, false],
     [labels[1], paid, false],

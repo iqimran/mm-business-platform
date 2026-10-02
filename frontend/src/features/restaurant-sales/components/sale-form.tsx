@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNotify } from "@/components/common/notifications";
 import { useRouter } from "next/navigation";
 import { Controller, useFieldArray, useForm, useWatch, type Path } from "react-hook-form";
 import { NativeSelect } from "@/components/common/native-select";
@@ -10,21 +11,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useSession } from "@/features/auth/hooks";
+import { usePermissions, useSession } from "@/features/auth/hooks";
 import { ApiError } from "@/lib/api-client";
 import { errorMessage } from "@/lib/form-errors";
-import { paymentMethodLabels, paymentMethods, searchCustomers } from "../api";
 import { useCreateSale } from "../hooks";
-import { saleTotalMinor, toDecimal, toMinor } from "../money";
-import { nowLocal, saleErrorFields, saleSchema, toSaleInput, type SaleValues } from "../schemas";
-import { SaleFigures } from "./sale-figures";
+import { saleTotalMinor } from "../money";
+import { saleErrorFields, saleSchema, toSaleInput, type SaleValues } from "../schemas";
+import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
 import { SaleLines } from "./sale-lines";
+import { nowLocal } from "@/features/restaurant-common/dates";
+import { searchCustomers } from "@/features/restaurant-common/lookups";
+import { toDecimal, toMinor } from "@/features/restaurant-common/money";
+import { paymentMethodLabels, paymentMethods } from "@/features/restaurant-common/payments";
 
 export function SaleForm() {
   const router = useRouter();
   const { data: session } = useSession();
   const branches = session?.branches ?? [];
   const create = useCreateSale();
+  const { can } = usePermissions();
+  const canViewCustomers = can("restaurant.customer.view");
+  const notify = useNotify();
 
   const {
     register,
@@ -56,6 +63,7 @@ export function SaleForm() {
   const submit = handleSubmit(async (v) => {
     try {
       const sale = await create.mutateAsync(toSaleInput(v));
+      notify(`Sale ${sale.sale_no} recorded.`);
       router.push(`/restaurant/sales/${sale.id}`);
     } catch (e) {
       if (e instanceof ApiError && e.status === 422) {
@@ -85,22 +93,28 @@ export function SaleForm() {
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="sale-customer">Customer</Label>
-          <Controller
-            control={control}
-            name="customer"
-            render={({ field }) => (
-              <RecordPicker
-                id="sale-customer"
-                value={field.value}
-                onChange={field.onChange}
-                search={searchCustomers}
-                queryKey="restaurant-customers-active"
-                placeholder="Walk-in (search to select)"
-                invalid={Boolean(errors.customer)}
-                describedBy="sale-customer-error"
-              />
-            )}
-          />
+          {canViewCustomers ? (
+            <Controller
+              control={control}
+              name="customer"
+              render={({ field }) => (
+                <RecordPicker
+                  id="sale-customer"
+                  value={field.value}
+                  onChange={field.onChange}
+                  search={searchCustomers}
+                  queryKey="restaurant-customers-active"
+                  placeholder="Walk-in (search to select)"
+                  invalid={Boolean(errors.customer)}
+                  describedBy="sale-customer-error"
+                />
+              )}
+            />
+          ) : (
+            <p id="sale-customer" className="text-sm text-muted-foreground">
+              Walk-in only (you cannot look up customers), so the sale must be paid in full.
+            </p>
+          )}
           <FieldError id="sale-customer-error" message={errors.customer?.message} />
         </div>
         <div className="flex flex-col gap-2">
@@ -145,7 +159,7 @@ export function SaleForm() {
             <FieldError id="sale-pay-reference-error" message={errors.payment_reference?.message} />
           </div>
         </div>
-        <SaleFigures total={toDecimal(total)} paid={toDecimal(paying)} due={toDecimal(total - paying)} labels={["Total", "Paying now", "Due after sale"]} />
+        <AmountSummary total={toDecimal(total)} paid={toDecimal(paying)} due={toDecimal(total - paying)} labels={["Total", "Paying now", "Due after sale"]} />
         <p className="text-xs text-muted-foreground">Preview only. The server applies menu prices at the moment of sale and calculates the final figures.</p>
       </fieldset>
 

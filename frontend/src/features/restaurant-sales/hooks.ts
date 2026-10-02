@@ -1,7 +1,8 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createSale, fetchSale, fetchSales, recordPayment, reversePayment, reverseSale, type NewSaleInput, type PaymentInput, type SaleFilters } from "./api";
+import { createSale, fetchSale, fetchSales, recordPayment, reversePayment, reverseSale, type FoodSale, type NewSaleInput, type SaleFilters } from "./api";
+import { type PaymentInput } from "@/features/restaurant-common/payments";
 
 const salesKey = ["restaurant-sales"] as const;
 
@@ -14,7 +15,7 @@ export function useSale(id: string) {
 }
 
 /** Every sale mutation returns the refreshed sale; lists are refetched. */
-function useSaleMutation<TArgs>(mutationFn: (args: TArgs) => Promise<{ id: string }>) {
+function useSaleMutation<TArgs>(mutationFn: (args: TArgs) => Promise<FoodSale>) {
   const queryClient = useQueryClient();
 
   return useMutation({

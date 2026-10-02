@@ -10,10 +10,11 @@ import { useSession } from "@/features/auth/hooks";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
-import { paymentStatusLabels, type PaymentStatus, type SaleFilters } from "../api";
+import { type SaleFilters } from "../api";
 import { useSales } from "../hooks";
-import { PaymentStatusBadge } from "./payment-status-badge";
-import { SaleFigures } from "./sale-figures";
+import { PaymentStatusBadge } from "@/features/restaurant-common/components/payment-status-badge";
+import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
+import { type PaymentStatus, paymentStatusLabels } from "@/features/restaurant-common/payments";
 
 const initial: SaleFilters = { page: 1, search: "", branchId: "", dateFrom: "", dateTo: "", paymentStatus: "", state: "" };
 
@@ -61,7 +62,7 @@ export function SalesList() {
 
       {sales.data ? (
         <>
-          <SaleFigures total={sales.data.summary.total} paid={sales.data.summary.paid} due={sales.data.summary.due} labels={[`Sales total (${sales.data.summary.count})`, "Received", "Outstanding"]} />
+          <AmountSummary total={sales.data.summary.total} paid={sales.data.summary.paid} due={sales.data.summary.due} labels={[`Sales total (${sales.data.summary.count})`, "Received", "Outstanding"]} />
           <div className="rounded-lg border">
             <Table>
               <TableHeader>
@@ -98,7 +99,7 @@ export function SalesList() {
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{formatAmount(sale.paid)}</TableCell>
                     <TableCell className="text-right tabular-nums">{sale.is_reversed ? "—" : formatAmount(sale.due)}</TableCell>
                     <TableCell>
-                      <PaymentStatusBadge sale={sale} />
+                      <PaymentStatusBadge status={sale.payment_status} voided={sale.is_reversed} />
                     </TableCell>
                   </TableRow>
                 ))}

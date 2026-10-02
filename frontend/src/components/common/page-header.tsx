@@ -32,10 +32,6 @@ export function FieldError({ id, message }: { id: string; message?: string }) {
   );
 }
 
-export function Forbidden() {
-  return (
-    <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-      You do not have permission to view this page.
-    </div>
-  );
+export function Forbidden({ message = "You do not have permission to view this page." }: { message?: string }) {
+  return <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">{message}</div>;
 }

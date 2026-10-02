@@ -1,21 +1,22 @@
 "use client";
 
 import { CheckCircle2, Pencil, Plus } from "lucide-react";
+import { useNotify } from "@/components/common/notifications";
 import { useState } from "react";
 import { FormAlert } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { usePermissions } from "@/features/auth/hooks";
-import { PaymentForm } from "@/features/restaurant-sales/components/payment-form";
-import { PaymentsTable } from "@/features/restaurant-sales/components/payments-table";
-import { ReverseButton } from "@/features/restaurant-sales/components/reverse-button";
-import { SaleFigures } from "@/features/restaurant-sales/components/sale-figures";
-import { today } from "@/features/restaurant-sales/schemas";
+import { PaymentForm } from "@/features/restaurant-common/components/payment-form";
+import { PaymentsTable } from "@/features/restaurant-common/components/payments-table";
+import { ReverseButton } from "@/features/restaurant-common/components/reverse-button";
+import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
 import { errorMessage } from "@/lib/form-errors";
 import type { HallBooking } from "../api";
 import { useCancelBooking, useCompleteBooking, useRecordBookingPayment, useReverseBookingPayment } from "../hooks";
 import { BookingForm } from "./booking-form";
 import { BookingPaymentBadge, BookingStatusBadge } from "./booking-status-badge";
+import { today } from "@/features/restaurant-common/dates";
 
 /** Why no payment can be recorded right now (fully paid / cancelled). */
 function PaymentNote({ booking }: { booking: HallBooking }) {
@@ -37,6 +38,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
   const complete = useCompleteBooking(booking.id);
   const recordPayment = useRecordBookingPayment(booking.id);
   const reversePayment = useReverseBookingPayment(booking.id);
+  const notify = useNotify();
 
   const confirmed = booking.status === "confirmed";
   const hasActivePayments = (booking.payments ?? []).some((p) => !p.is_reversed);
@@ -48,7 +50,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
   const onComplete = () => {
     if (!window.confirm("Mark this booking as completed? Its details can no longer be changed.")) return;
     setActionError(undefined);
-    complete.mutate(undefined, { onError: (e) => setActionError(errorMessage(e)) });
+    complete.mutate(undefined, { onSuccess: () => notify("Booking marked as completed."), onError: (e) => setActionError(errorMessage(e)) });
   };
 
   const details: [string, string][] = [
@@ -121,14 +123,14 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
           ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <SaleFigures total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Booking amount", "Total paid", "Remaining due"]} />
+          <AmountSummary total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Booking amount", "Total paid", "Remaining due"]} />
           <PaymentNote booking={booking} />
           {paying ? <PaymentForm due={booking.due} onSubmit={(input) => recordPayment.mutateAsync(input)} onDone={() => setPaying(false)} /> : null}
           <h3 className="text-sm font-medium">Payment history</h3>
           <PaymentsTable
             payments={booking.payments ?? []}
             canReverse={can("restaurant.booking_payment.reverse")}
-            onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason })}
+            onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason }).then(() => notify("Payment reversed."))}
           />
         </CardContent>
       </Card>
@@ -145,7 +147,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
               <>
                 <p className="text-muted-foreground">Cancelling frees the hall for this time. It cannot be undone.</p>
                 <div>
-                  <ReverseButton label="booking" onReverse={(reason) => cancel.mutateAsync(reason)} />
+                  <ReverseButton label="booking" onReverse={(reason) => cancel.mutateAsync(reason).then(() => notify("Booking cancelled."))} />
                 </div>
               </>
             )}

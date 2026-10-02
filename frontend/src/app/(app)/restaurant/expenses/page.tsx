@@ -5,6 +5,8 @@ import { useState } from "react";
 import { Forbidden, PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { usePermissions } from "@/features/auth/hooks";
+import { missingPermissions } from "@/features/restaurant-common/permissions";
+import { Tabs } from "@/features/restaurant-common/components/tabs";
 import { DailySummary } from "@/features/restaurant-expenses/components/daily-summary";
 import { ExpenseForm } from "@/features/restaurant-expenses/components/expense-form";
 import { ExpensesList } from "@/features/restaurant-expenses/components/expenses-list";
@@ -24,7 +26,7 @@ export default function RestaurantExpensesPage() {
         title="Restaurant expenses"
         description="Daily expenses by category. Corrections are made by reversing an expense and recording it again."
         actions={
-          can("restaurant.expense.create") && !adding ? (
+          missingPermissions(can, "newExpense").length === 0 && !adding ? (
             <Button onClick={() => setAdding(true)}>
               <Plus aria-hidden />
               Record expense
@@ -33,25 +35,15 @@ export default function RestaurantExpensesPage() {
         }
       />
       {adding ? <ExpenseForm onDone={() => setAdding(false)} /> : null}
-      <div role="tablist" aria-label="Expense views" className="flex gap-1 border-b">
-        {(
-          [
-            ["expenses", "Expenses"],
-            ["summary", "Daily category summary"],
-          ] as [Tab, string][]
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            role="tab"
-            type="button"
-            aria-selected={tab === key}
-            className={`-mb-px border-b-2 px-3 py-2 text-sm ${tab === key ? "border-primary font-medium" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            onClick={() => setTab(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        label="Expense views"
+        tabs={[
+          ["expenses", "Expenses"],
+          ["summary", "Daily category summary"],
+        ]}
+        value={tab}
+        onChange={setTab}
+      />
       {tab === "expenses" ? <ExpensesList /> : <DailySummary />}
     </>
   );

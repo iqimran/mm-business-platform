@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNotify } from "@/components/common/notifications";
 import { useForm } from "react-hook-form";
 import { NativeSelect } from "@/components/common/native-select";
 import { FieldError, FormAlert } from "@/components/common/page-header";
@@ -9,9 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyApiErrors } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
-import { paymentMethodLabels, paymentMethods, type PaymentInput } from "../api";
 import { useMemo } from "react";
-import { paymentSchemaFor, today, type PaymentValues } from "../schemas";
+import { today } from "../dates";
+import { paymentMethodLabels, paymentMethods, paymentSchemaFor, type PaymentInput, type PaymentValues } from "../payments";
 
 /**
  * Payment against a restaurant obligation (food sale or hall booking).
@@ -19,6 +20,7 @@ import { paymentSchemaFor, today, type PaymentValues } from "../schemas";
  */
 export function PaymentForm({ due, onSubmit, onDone }: { due: string; onSubmit: (input: PaymentInput) => Promise<unknown>; onDone: () => void }) {
   const schema = useMemo(() => paymentSchemaFor(due), [due]);
+  const notify = useNotify();
   const {
     register,
     handleSubmit,
@@ -33,6 +35,7 @@ export function PaymentForm({ due, onSubmit, onDone }: { due: string; onSubmit: 
   const submit = handleSubmit(async (v) => {
     try {
       await onSubmit({ ...v, reference: v.reference || null, notes: v.notes || null });
+      notify("Payment recorded.");
       onDone();
     } catch (e) {
       applyApiErrors(e, setError, ["payment_date", "amount", "method", "reference", "notes"]);

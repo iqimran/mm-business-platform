@@ -11,8 +11,9 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAmount } from "@/lib/money";
 import { searchMenu, type MenuOption } from "../api";
-import { lineTotalMinor, toDecimal, toQuantity } from "../money";
+import { lineTotalMinor, toQuantity } from "../money";
 import type { SaleValues } from "../schemas";
+import { toDecimal } from "@/features/restaurant-common/money";
 
 /**
  * Sale lines: pick menu items (server search), edit quantities, see line totals.

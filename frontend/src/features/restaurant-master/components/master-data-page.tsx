@@ -1,6 +1,7 @@
 "use client";
 
 import { Pencil, Plus, Trash2 } from "lucide-react";
+import { useNotify } from "@/components/common/notifications";
 import { useState } from "react";
 import { NativeSelect } from "@/components/common/native-select";
 import { FormAlert, Forbidden, PageHeader } from "@/components/common/page-header";
@@ -45,6 +46,7 @@ export function MasterDataPage({ resource }: { resource: MasterResource }) {
   const search = useDebouncedValue(filters.search);
   const records = useMasterRecords(resource, { ...filters, search });
   const remove = useDeleteRecord(resource);
+  const notify = useNotify();
 
   const canCreate = can(`${resource.permission}.create`);
   const canUpdate = can(`${resource.permission}.update`);
@@ -57,7 +59,7 @@ export function MasterDataPage({ resource }: { resource: MasterResource }) {
   const onDelete = (record: MasterRecord) => {
     if (!window.confirm(`Delete ${resource.singular} "${record.name}"? This cannot be undone.`)) return;
     setActionError(undefined);
-    remove.mutate(record.id, { onError: (e) => setActionError(errorMessage(e)) });
+    remove.mutate(record.id, { onSuccess: () => notify(`"${record.name}" deleted.`), onError: (e) => setActionError(errorMessage(e)) });
   };
 
   const hasFilters = filters.search.trim() !== "" || filters.active !== "" || filters.categoryId !== "";

@@ -1,24 +1,6 @@
 import { apiRequest } from "@/lib/api-client";
+import type { PaymentInput, PaymentMethod, PaymentRecord, PaymentStatus } from "@/features/restaurant-common/payments";
 import type { Paginated } from "@/types/api";
-
-export const paymentMethods = ["cash", "bank_transfer", "cheque", "mobile_banking", "other"] as const;
-export type PaymentMethod = (typeof paymentMethods)[number];
-
-export const paymentMethodLabels: Record<PaymentMethod, string> = {
-  cash: "Cash",
-  bank_transfer: "Bank transfer",
-  cheque: "Cheque",
-  mobile_banking: "Mobile banking",
-  other: "Other",
-};
-
-export type PaymentStatus = "unpaid" | "partial" | "paid";
-
-export const paymentStatusLabels: Record<PaymentStatus, string> = {
-  unpaid: "Unpaid",
-  partial: "Partially paid",
-  paid: "Paid",
-};
 
 export type SaleItem = {
   id: string;
@@ -27,19 +9,6 @@ export type SaleItem = {
   unit_price: string;
   quantity: number;
   line_total: string;
-};
-
-export type SalePayment = {
-  id: string;
-  payment_date: string;
-  amount: string;
-  method: PaymentMethod;
-  reference: string | null;
-  notes: string | null;
-  recorded_by: { id: string; name: string } | null;
-  is_reversed: boolean;
-  reversed_at: string | null;
-  reversal_reason: string | null;
 };
 
 export type FoodSale = {
@@ -56,7 +25,7 @@ export type FoodSale = {
   payment_status: PaymentStatus;
   items_count?: number;
   items?: SaleItem[];
-  payments?: SalePayment[];
+  payments?: PaymentRecord[];
   recorded_by?: { id: string; name: string } | null;
   is_reversed: boolean;
   reversed_at: string | null;
@@ -85,14 +54,6 @@ export type NewSaleInput = {
   notes: string | null;
   items: { menu_item_id: string; quantity: number }[];
   payment: { amount: string; method: PaymentMethod; reference: string | null } | null;
-};
-
-export type PaymentInput = {
-  payment_date: string;
-  amount: string;
-  method: PaymentMethod;
-  reference: string | null;
-  notes: string | null;
 };
 
 export function fetchSales(f: SaleFilters) {
@@ -143,12 +104,4 @@ export async function searchMenu(term: string): Promise<MenuOption[]> {
   return page.items
     .filter((item) => item.category?.is_active !== false)
     .map((item) => ({ id: item.id, label: item.name, price: item.price, hint: `${item.category?.name ?? ""} · ${item.price}` }));
-}
-
-export async function searchCustomers(term: string) {
-  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
-  if (term) params.set("search", term);
-  const page = await apiRequest<Paginated<{ id: string; name: string; phone: string | null }>>(`/restaurant/customers?${params}`);
-
-  return page.items.map((c) => ({ id: c.id, label: c.name, hint: c.phone ?? undefined }));
 }

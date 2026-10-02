@@ -1,10 +1,9 @@
 import { z } from "zod";
+import { AMOUNT_PATTERN } from "@/features/restaurant-common/money";
 import type { MasterResource } from "./config";
 
 export type FormValues = Record<string, string | boolean>;
 
-/** Same format the API accepts: up to 12 digits and 2 decimals, never a float. */
-const MONEY = /^(0|[1-9]\d{0,11})(\.\d{1,2})?$/;
 
 export function buildSchema(resource: MasterResource) {
   const shape: Record<string, z.ZodType<string | boolean, string | boolean>> = { is_active: z.boolean() };
@@ -15,8 +14,8 @@ export function buildSchema(resource: MasterResource) {
     if (field.type === "money") {
       shape[field.name] = rule
         .min(1, `${field.label} is required.`)
-        .regex(MONEY, `${field.label} must be an amount with at most 2 decimal places, e.g. 250.00.`)
-        .refine((v) => !MONEY.test(v) || /[1-9]/.test(v), `${field.label} must be greater than zero.`);
+        .regex(AMOUNT_PATTERN, `${field.label} must be an amount with at most 2 decimal places, e.g. 250.00.`)
+        .refine((v) => !AMOUNT_PATTERN.test(v) || /[1-9]/.test(v), `${field.label} must be greater than zero.`);
       continue;
     }
     if (field.type === "number") {

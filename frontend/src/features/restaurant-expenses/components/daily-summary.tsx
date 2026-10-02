@@ -4,13 +4,13 @@ import { useState } from "react";
 import { NativeSelect } from "@/components/common/native-select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useSession } from "@/features/auth/hooks";
-import { today } from "@/features/restaurant-sales/schemas";
+import { usePermissions, useSession } from "@/features/auth/hooks";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { CategoryTotal, SummaryFilters } from "../api";
 import { useDailySummary, useExpenseCategories } from "../hooks";
 import { rangeDays } from "../schemas";
+import { today } from "@/features/restaurant-common/dates";
 
 function TotalsTable({ rows, total, label }: { rows: CategoryTotal[]; total: string; label: string }) {
   return (
@@ -34,7 +34,9 @@ function TotalsTable({ rows, total, label }: { rows: CategoryTotal[]; total: str
 /** Daily category-wise expense totals (server-computed; reversed expenses excluded). */
 export function DailySummary() {
   const { data: session } = useSession();
-  const categories = useExpenseCategories(false);
+  const { can } = usePermissions();
+  const canViewCategories = can("restaurant.expense_category.view");
+  const categories = useExpenseCategories(false, canViewCategories);
   const [filters, setFilters] = useState<SummaryFilters>({ dateFrom: today(), dateTo: today(), branchId: "", categoryId: "" });
   const summary = useDailySummary(filters);
   const days = rangeDays(filters.dateFrom, filters.dateTo);
@@ -46,14 +48,16 @@ export function DailySummary() {
       <div className="flex flex-wrap items-end gap-2">
         <Input type="date" aria-label="Summary from date" className="w-40" value={filters.dateFrom} max={today()} onChange={(e) => set({ dateFrom: e.target.value })} />
         <Input type="date" aria-label="Summary to date" className="w-40" value={filters.dateTo} min={filters.dateFrom} onChange={(e) => set({ dateTo: e.target.value })} />
-        <NativeSelect aria-label="Summary category" className="w-44" value={filters.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
-          <option value="">All categories</option>
-          {(categories.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </NativeSelect>
+        {canViewCategories ? (
+          <NativeSelect aria-label="Summary category" className="w-44" value={filters.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
+            <option value="">All categories</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </NativeSelect>
+        ) : null}
         {(session?.branches.length ?? 0) > 1 ? (
           <NativeSelect aria-label="Summary branch" className="w-44" value={filters.branchId} onChange={(e) => set({ branchId: e.target.value })}>
             <option value="">All branches</option>

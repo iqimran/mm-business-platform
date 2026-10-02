@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { today } from "@/features/restaurant-sales/schemas";
 import { expenseSchema, rangeDays, toExpenseInput, type ExpenseValues } from "./schemas";
+import { today } from "@/features/restaurant-common/dates";
 
 const values = (overrides: Partial<ExpenseValues> = {}): ExpenseValues => ({
   branch_id: "b1",

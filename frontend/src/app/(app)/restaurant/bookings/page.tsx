@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Forbidden, PageHeader } from "@/components/common/page-header";
 import { buttonVariants } from "@/components/ui/button";
 import { usePermissions } from "@/features/auth/hooks";
+import { missingPermissions } from "@/features/restaurant-common/permissions";
 import { BookingsList } from "@/features/restaurant-bookings/components/bookings-list";
 
 export default function HallBookingsPage() {
@@ -18,7 +19,7 @@ export default function HallBookingsPage() {
         title="Hall bookings"
         description="Bookings of your branches' halls. Due amounts are calculated by the server."
         actions={
-          can("restaurant.booking.create") ? (
+          missingPermissions(can, "newBooking").length === 0 ? (
             <Link href="/restaurant/bookings/new" className={buttonVariants()}>
               <Plus aria-hidden />
               New booking

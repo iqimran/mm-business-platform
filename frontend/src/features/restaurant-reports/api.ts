@@ -1,6 +1,6 @@
-import type { PaymentStatus } from "@/features/restaurant-sales/api";
 import { apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
+import { type PaymentStatus } from "@/features/restaurant-common/payments";
 
 export type ReportName = "sales" | "bookings" | "expenses";
 

@@ -1,26 +1,8 @@
 import { z } from "zod";
-import { paymentMethods } from "./api";
-import { saleTotalMinor, toDecimal, toMinor, toQuantity } from "./money";
-
-/** Local date/time helpers (not UTC, which can be a day behind in UTC+ time zones). */
-const pad = (n: number) => String(n).padStart(2, "0");
-export const today = () => {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-};
-export const nowLocal = () => {
-  const d = new Date();
-  return `${today()}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
-
-const AMOUNT = /^(0|[1-9]\d{0,11})(\.\d{1,2})?$/;
-const amountText = (label: string) =>
-  z
-    .string()
-    .trim()
-    .min(1, `${label} is required.`)
-    .regex(AMOUNT, "Enter an amount like 1500 or 1500.50 (no commas).")
-    .refine((v) => /[1-9]/.test(v), `${label} must be greater than zero.`);
+import { nowLocal } from "@/features/restaurant-common/dates";
+import { toDecimal, toMinor } from "@/features/restaurant-common/money";
+import { optionalAmountText, paymentMethods } from "@/features/restaurant-common/payments";
+import { saleTotalMinor, toQuantity } from "./money";
 
 export const saleLineSchema = z.object({
   menu_item_id: z.string().min(1),
@@ -38,7 +20,7 @@ export const saleSchema = z
       .min(1, "Sale time is required.")
       .refine((v) => v <= nowLocal(), "The sale time cannot be in the future."),
     items: z.array(saleLineSchema).min(1, "Add at least one menu item."),
-    payment_amount: z.string().trim().refine((v) => v === "" || AMOUNT.test(v), "Enter an amount like 1500 or 1500.50 (no commas)."),
+    payment_amount: optionalAmountText(),
     payment_method: z.enum(paymentMethods),
     payment_reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
     notes: z.string().trim().max(5000, "Notes must be at most 5000 characters."),
@@ -87,30 +69,5 @@ export function saleErrorFields(errors: Record<string, string[]>): [string, stri
     if (key === "customer_id") return [["customer", message]];
     if (["branch_id", "sold_at", "notes"].includes(key)) return [[key, message]];
     return [["root", message]];
-  });
-}
-
-export const paymentSchema = z.object({
-  payment_date: z
-    .string()
-    .min(1, "Payment date is required.")
-    .refine((v) => v <= today(), "Payment date cannot be in the future."),
-  amount: amountText("Amount"),
-  method: z.enum(paymentMethods),
-  reference: z.string().trim().max(100, "Reference must be at most 100 characters."),
-  notes: z.string().trim().max(5000, "Notes must be at most 5000 characters."),
-});
-
-export type PaymentValues = z.infer<typeof paymentSchema>;
-
-/** Payment against a known remaining due: overpayment is caught before sending (the API re-checks). */
-export function paymentSchemaFor(due: string) {
-  const dueMinor = toMinor(due) ?? 0;
-
-  return paymentSchema.superRefine((v, ctx) => {
-    const amount = toMinor(v.amount);
-    if (amount !== null && amount > dueMinor) {
-      ctx.addIssue({ code: "custom", path: ["amount"], message: `The amount exceeds the remaining due of ${toDecimal(dueMinor)}.` });
-    }
   });
 }

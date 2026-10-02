@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNotify } from "@/components/common/notifications";
 import { Controller, useForm } from "react-hook-form";
 import { NativeSelect } from "@/components/common/native-select";
 import { FieldError, FormAlert } from "@/components/common/page-header";
@@ -8,18 +9,21 @@ import { RecordPicker } from "@/components/common/record-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useSession } from "@/features/auth/hooks";
-import { today } from "@/features/restaurant-sales/schemas";
+import { usePermissions, useSession } from "@/features/auth/hooks";
+import { searchSuppliers } from "@/features/restaurant-common/lookups";
 import { applyApiErrors } from "@/lib/form-errors";
-import { searchSuppliers } from "../api";
 import { useCreateExpense, useExpenseCategories } from "../hooks";
 import { expenseSchema, toExpenseInput, type ExpenseValues } from "../schemas";
+import { today } from "@/features/restaurant-common/dates";
 
 export function ExpenseForm({ onDone }: { onDone: () => void }) {
   const { data: session } = useSession();
   const branches = session?.branches ?? [];
   const categories = useExpenseCategories(true);
   const create = useCreateExpense();
+  const { can } = usePermissions();
+  const canViewSuppliers = can("restaurant.supplier.view");
+  const notify = useNotify();
 
   const {
     register,
@@ -43,6 +47,7 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
   const submit = handleSubmit(async (v) => {
     try {
       await create.mutateAsync(toExpenseInput(v));
+      notify("Expense recorded.");
       onDone();
     } catch (e) {
       applyApiErrors(e, setError, ["branch_id", "category_id", "expense_date", "amount", "description", "reference"], { supplier_id: "supplier" });
@@ -90,26 +95,28 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
           </NativeSelect>
           <FieldError id="expense-branch-error" message={errors.branch_id?.message} />
         </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="expense-supplier">Supplier (optional)</Label>
-          <Controller
-            control={control}
-            name="supplier"
-            render={({ field }) => (
-              <RecordPicker
-                id="expense-supplier"
-                value={field.value}
-                onChange={field.onChange}
-                search={searchSuppliers}
-                queryKey="restaurant-suppliers-active"
-                placeholder="Search suppliers…"
-                invalid={Boolean(errors.supplier)}
-                describedBy="expense-supplier-error"
-              />
-            )}
-          />
-          <FieldError id="expense-supplier-error" message={errors.supplier?.message} />
-        </div>
+        {canViewSuppliers ? (
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="expense-supplier">Supplier (optional)</Label>
+            <Controller
+              control={control}
+              name="supplier"
+              render={({ field }) => (
+                <RecordPicker
+                  id="expense-supplier"
+                  value={field.value}
+                  onChange={field.onChange}
+                  search={searchSuppliers}
+                  queryKey="restaurant-suppliers-active"
+                  placeholder="Search suppliers…"
+                  invalid={Boolean(errors.supplier)}
+                  describedBy="expense-supplier-error"
+                />
+              )}
+            />
+            <FieldError id="expense-supplier-error" message={errors.supplier?.message} />
+          </div>
+        ) : null}
         <div className="flex flex-col gap-2">
           <Label htmlFor="expense-reference">Reference</Label>
           <Input id="expense-reference" placeholder="Bill / invoice no." aria-invalid={errors.reference ? true : undefined} {...register("reference")} />

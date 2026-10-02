@@ -5,14 +5,14 @@ import { useState } from "react";
 import { NativeSelect } from "@/components/common/native-select";
 import { Pager } from "@/components/common/pager";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { paymentStatusLabels } from "@/features/restaurant-sales/api";
-import { PaymentStatusBadge } from "@/features/restaurant-sales/components/payment-status-badge";
+import { PaymentStatusBadge } from "@/features/restaurant-common/components/payment-status-badge";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { DayRow, ReportQuery, SaleRow, SalesTotals } from "../api";
 import { useReport } from "../hooks";
 import { nextSort } from "../period";
 import { SortHead, Totals, type Period } from "./report-controls";
+import { paymentStatusLabels } from "@/features/restaurant-common/payments";
 
 export function SalesReport({ period }: { period: Period }) {
   const [view, setView] = useState<{ groupBy: "" | "day"; sort: string; direction: "asc" | "desc"; page: number; paymentStatus: string }>({
@@ -107,7 +107,7 @@ export function SalesReport({ period }: { period: Period }) {
                         <TableCell className="text-right tabular-nums">{formatAmount(r.paid)}</TableCell>
                         <TableCell className="text-right tabular-nums">{formatAmount(r.due)}</TableCell>
                         <TableCell>
-                          <PaymentStatusBadge sale={{ payment_status: r.payment_status, is_reversed: false }} />
+                          <PaymentStatusBadge status={r.payment_status} />
                         </TableCell>
                       </TableRow>
                     ))}

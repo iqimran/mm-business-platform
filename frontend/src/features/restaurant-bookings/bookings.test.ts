@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { today } from "@/features/restaurant-sales/schemas";
 import { bookingErrorFields, bookingSchema, overlapping, toBookingChanges, toBookingInput, type BookingValues } from "./schemas";
+import { today } from "@/features/restaurant-common/dates";
 
 const future = "2999-06-01";
 

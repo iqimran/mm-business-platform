@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { useNotify } from "@/components/common/notifications";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +10,11 @@ import { usePermissions } from "@/features/auth/hooks";
 import { formatAmount } from "@/lib/money";
 import type { FoodSale } from "../api";
 import { useRecordPayment, useReversePayment, useReverseSale } from "../hooks";
-import { PaymentForm } from "./payment-form";
-import { PaymentStatusBadge } from "./payment-status-badge";
-import { PaymentsTable } from "./payments-table";
-import { ReverseButton } from "./reverse-button";
-import { SaleFigures } from "./sale-figures";
+import { PaymentForm } from "@/features/restaurant-common/components/payment-form";
+import { PaymentStatusBadge } from "@/features/restaurant-common/components/payment-status-badge";
+import { PaymentsTable } from "@/features/restaurant-common/components/payments-table";
+import { ReverseButton } from "@/features/restaurant-common/components/reverse-button";
+import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
 
 function Items({ sale }: { sale: FoodSale }) {
   return (
@@ -54,6 +55,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
   const reverseSale = useReverseSale(sale.id);
   const recordPayment = useRecordPayment(sale.id);
   const reversePayment = useReversePayment(sale.id);
+  const notify = useNotify();
   const activePayments = (sale.payments ?? []).some((p) => !p.is_reversed);
 
   const canPay = can("restaurant.sale_payment.create") && !sale.is_reversed && sale.payment_status !== "paid";
@@ -77,7 +79,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle>Summary</CardTitle>
-          <PaymentStatusBadge sale={sale} />
+          <PaymentStatusBadge status={sale.payment_status} voided={sale.is_reversed} />
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <dl className="grid gap-3 text-sm sm:grid-cols-4">
@@ -88,7 +90,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
               </div>
             ))}
           </dl>
-          <SaleFigures total={sale.total} paid={sale.paid} due={sale.due} />
+          <AmountSummary total={sale.total} paid={sale.paid} due={sale.due} />
           {sale.notes ? <p className="text-sm whitespace-pre-line text-muted-foreground">{sale.notes}</p> : null}
         </CardContent>
       </Card>
@@ -117,7 +119,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
           <PaymentsTable
             payments={sale.payments ?? []}
             canReverse={can("restaurant.sale_payment.reverse") && !sale.is_reversed}
-            onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason })}
+            onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason }).then(() => notify("Payment reversed."))}
           />
         </CardContent>
       </Card>
@@ -134,7 +136,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
               <>
                 <p className="text-muted-foreground">Cancels the sale. It stays in history and no longer counts in totals.</p>
                 <div>
-                  <ReverseButton label="sale" onReverse={(reason) => reverseSale.mutateAsync(reason)} />
+                  <ReverseButton label="sale" onReverse={(reason) => reverseSale.mutateAsync(reason).then(() => notify(`Sale ${sale.sale_no} reversed.`))} />
                 </div>
               </>
             )}

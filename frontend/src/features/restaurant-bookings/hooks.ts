@@ -1,7 +1,7 @@
 "use client";
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { PaymentInput } from "@/features/restaurant-sales/api";
+import { type PaymentInput } from "@/features/restaurant-common/payments";
 import {
   cancelBooking,
   completeBooking,
@@ -15,6 +15,7 @@ import {
   updateBooking,
   type BookingFilters,
   type BookingInput,
+  type HallBooking,
 } from "./api";
 
 const bookingsKey = ["restaurant-bookings"] as const;
@@ -27,8 +28,9 @@ export function useBooking(id: string) {
   return useQuery({ queryKey: [...bookingsKey, "detail", id], queryFn: () => fetchBooking(id) });
 }
 
-export function useHallOptions(activeOnly: boolean) {
-  return useQuery({ queryKey: ["restaurant/halls", "options", activeOnly], queryFn: () => fetchHalls(activeOnly), staleTime: 60_000 });
+/** Disabled (no request) when the user may not view halls. */
+export function useHallOptions(activeOnly: boolean, enabled = true) {
+  return useQuery({ queryKey: ["restaurant/halls", "options", activeOnly], queryFn: () => fetchHalls(activeOnly), enabled, staleTime: 60_000 });
 }
 
 export function useAvailability(hallId: string, date: string) {
@@ -40,7 +42,7 @@ export function useAvailability(hallId: string, date: string) {
 }
 
 /** Every booking mutation returns the refreshed booking; lists and availability are refetched. */
-function useBookingMutation<TArgs>(mutationFn: (args: TArgs) => Promise<{ id: string }>) {
+function useBookingMutation<TArgs>(mutationFn: (args: TArgs) => Promise<HallBooking>) {
   const queryClient = useQueryClient();
 
   return useMutation({

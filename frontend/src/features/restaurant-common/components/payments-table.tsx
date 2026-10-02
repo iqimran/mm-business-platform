@@ -3,7 +3,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatAmount } from "@/lib/money";
-import { paymentMethodLabels, type SalePayment } from "../api";
+import { paymentMethodLabels, type PaymentRecord } from "../payments";
 import { ReverseButton } from "./reverse-button";
 
 /** Payments of a restaurant obligation (food sale or hall booking); reversed ones stay visible. */
@@ -12,7 +12,7 @@ export function PaymentsTable({
   canReverse,
   onReverse,
 }: {
-  payments: SalePayment[];
+  payments: PaymentRecord[];
   canReverse: boolean;
   onReverse: (paymentId: string, reason: string) => Promise<unknown>;
 }) {

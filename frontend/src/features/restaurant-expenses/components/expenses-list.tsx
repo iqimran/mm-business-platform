@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useNotify } from "@/components/common/notifications";
 import { NativeSelect } from "@/components/common/native-select";
 import { Pager } from "@/components/common/pager";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions, useSession } from "@/features/auth/hooks";
-import { ReverseButton } from "@/features/restaurant-sales/components/reverse-button";
+import { ReverseButton } from "@/features/restaurant-common/components/reverse-button";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
@@ -22,8 +23,10 @@ export function ExpensesList() {
   const [filters, setFilters] = useState<ExpenseFilters>(initial);
   const search = useDebouncedValue(filters.search);
   const expenses = useExpenses({ ...filters, search });
-  const categories = useExpenseCategories(false);
+  const canViewCategories = can("restaurant.expense_category.view");
+  const categories = useExpenseCategories(false, canViewCategories);
   const reverse = useReverseExpense();
+  const notify = useNotify();
   const set = (patch: Partial<ExpenseFilters>) => setFilters({ ...filters, ...patch, page: 1 });
   const filtered = JSON.stringify({ ...filters, page: 1 }) !== JSON.stringify(initial);
   const canReverse = can("restaurant.expense.reverse");
@@ -34,15 +37,17 @@ export function ExpensesList() {
         <Input type="search" placeholder="Description, reference…" aria-label="Search expenses" className="max-w-xs" value={filters.search} onChange={(e) => set({ search: e.target.value })} />
         <Input type="date" aria-label="From date" className="w-40" value={filters.dateFrom} onChange={(e) => set({ dateFrom: e.target.value })} />
         <Input type="date" aria-label="To date" className="w-40" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(e) => set({ dateTo: e.target.value })} />
-        <NativeSelect aria-label="Category filter" className="w-44" value={filters.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
-          <option value="">All categories</option>
-          {(categories.data ?? []).map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-              {c.is_active ? "" : " (inactive)"}
-            </option>
-          ))}
-        </NativeSelect>
+        {canViewCategories ? (
+          <NativeSelect aria-label="Category filter" className="w-44" value={filters.categoryId} onChange={(e) => set({ categoryId: e.target.value })}>
+            <option value="">All categories</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+                {c.is_active ? "" : " (inactive)"}
+              </option>
+            ))}
+          </NativeSelect>
+        ) : null}
         {(session?.branches.length ?? 0) > 1 ? (
           <NativeSelect aria-label="Branch filter" className="w-44" value={filters.branchId} onChange={(e) => set({ branchId: e.target.value })}>
             <option value="">All branches</option>
@@ -109,7 +114,7 @@ export function ExpensesList() {
                       {e.is_reversed ? (
                         <Badge variant="outline">Reversed</Badge>
                       ) : canReverse ? (
-                        <ReverseButton label="expense" onReverse={(reason) => reverse.mutateAsync({ id: e.id, reason })} />
+                        <ReverseButton label="expense" onReverse={(reason) => reverse.mutateAsync({ id: e.id, reason }).then(() => notify("Expense reversed."))} />
                       ) : null}
                     </TableCell>
                   </TableRow>

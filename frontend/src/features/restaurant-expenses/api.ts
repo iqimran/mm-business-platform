@@ -1,3 +1,4 @@
+import { fetchAllPages } from "@/features/restaurant-common/lookups";
 import { apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
 
@@ -82,23 +83,7 @@ export function reverseExpense(id: string, reason: string) {
   return apiRequest<RestaurantExpense>(`/restaurant/expenses/${encodeURIComponent(id)}/reverse`, { method: "POST", body: { reason } });
 }
 
-/** Expense categories for dropdowns (a small catalog): loads every page, bounded to 1,000. */
-export async function fetchExpenseCategories(activeOnly: boolean) {
-  const all: CategoryOption[] = [];
-  for (let page = 1; page <= 10; page++) {
-    const params = new URLSearchParams({ per_page: "100", page: String(page) });
-    if (activeOnly) params.set("is_active", "1");
-    const result = await apiRequest<Paginated<CategoryOption>>(`/restaurant/expense-categories?${params}`);
-    all.push(...result.items);
-    if (page >= result.pagination.last_page) break;
-  }
-  return all;
-}
-
-export async function searchSuppliers(term: string) {
-  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
-  if (term) params.set("search", term);
-  const page = await apiRequest<Paginated<{ id: string; name: string; contact_person: string | null; phone: string | null }>>(`/restaurant/suppliers?${params}`);
-
-  return page.items.map((s) => ({ id: s.id, label: s.name, hint: [s.contact_person, s.phone].filter(Boolean).join(" · ") || undefined }));
+/** Expense categories for dropdowns (a small catalog, all pages). */
+export function fetchExpenseCategories(activeOnly: boolean) {
+  return fetchAllPages<CategoryOption>("/restaurant/expense-categories", activeOnly);
 }

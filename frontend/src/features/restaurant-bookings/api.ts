@@ -1,6 +1,7 @@
-import type { PaymentInput, PaymentStatus, SalePayment } from "@/features/restaurant-sales/api";
+import { fetchAllPages } from "@/features/restaurant-common/lookups";
 import { apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
+import { type PaymentInput, type PaymentRecord, type PaymentStatus } from "@/features/restaurant-common/payments";
 
 export type BookingStatus = "confirmed" | "completed" | "cancelled";
 
@@ -28,7 +29,7 @@ export type HallBooking = {
   due: string;
   payment_status: PaymentStatus;
   notes: string | null;
-  payments?: SalePayment[];
+  payments?: PaymentRecord[];
   created_by?: { id: string; name: string } | null;
   cancelled_at: string | null;
   cancelled_by?: { id: string; name: string } | null;
@@ -110,15 +111,7 @@ export function fetchAvailability(hallId: string, date: string) {
   return apiRequest<{ hall_id: string; date: string; booked: BookedSlot[] }>(`/restaurant/hall-availability?${params}`);
 }
 
-/** Halls of the user's branches (a small catalog): loads every page, bounded to 1,000. */
-export async function fetchHalls(activeOnly: boolean) {
-  const all: HallOption[] = [];
-  for (let page = 1; page <= 10; page++) {
-    const params = new URLSearchParams({ per_page: "100", page: String(page) });
-    if (activeOnly) params.set("is_active", "1");
-    const result = await apiRequest<Paginated<HallOption>>(`/restaurant/halls?${params}`);
-    all.push(...result.items);
-    if (page >= result.pagination.last_page) break;
-  }
-  return all;
+/** Halls of the user's branches (a small catalog, all pages). */
+export function fetchHalls(activeOnly: boolean) {
+  return fetchAllPages<HallOption>("/restaurant/halls", activeOnly);
 }

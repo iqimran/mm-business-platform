@@ -1,6 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useNotify } from "@/components/common/notifications";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { Controller, useForm, useWatch, type Path } from "react-hook-form";
@@ -11,16 +12,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { paymentMethodLabels, paymentMethods, searchCustomers } from "@/features/restaurant-sales/api";
-import { SaleFigures } from "@/features/restaurant-sales/components/sale-figures";
-import { toDecimal, toMinor } from "@/features/restaurant-sales/money";
-import { today } from "@/features/restaurant-sales/schemas";
+import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
+import { toDecimal, toMinor } from "@/features/restaurant-common/money";
 import { ApiError } from "@/lib/api-client";
 import { errorMessage } from "@/lib/form-errors";
+import { formatAmount } from "@/lib/money";
 import type { HallBooking } from "../api";
 import { useCreateBooking, useHallOptions, useUpdateBooking } from "../hooks";
 import { bookingErrorFields, bookingSchema, toBookingChanges, toBookingInput, type BookingValues } from "../schemas";
 import { AvailabilityPanel } from "./availability-panel";
+import { today } from "@/features/restaurant-common/dates";
+import { searchCustomers } from "@/features/restaurant-common/lookups";
+import { paymentMethodLabels, paymentMethods } from "@/features/restaurant-common/payments";
 
 /** New booking (with optional advance payment) or changes to a confirmed booking. */
 export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone?: () => void }) {
@@ -29,6 +32,7 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
   const halls = useHallOptions(true);
   const create = useCreateBooking();
   const update = useUpdateBooking(booking?.id ?? "");
+  const notify = useNotify();
   const schema = useMemo(() => bookingSchema(mode, booking?.booking_date), [mode, booking?.booking_date]);
 
   const {
@@ -69,9 +73,11 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
     try {
       if (booking) {
         await update.mutateAsync(toBookingChanges(v));
+        notify("Booking updated.");
         onDone?.();
       } else {
         const created = await create.mutateAsync(toBookingInput(v));
+        notify(`Hall booked (${created.booking_no}).`);
         router.push(`/restaurant/bookings/${created.id}`);
       }
     } catch (e) {
@@ -150,7 +156,7 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
         <div className="flex flex-col gap-2">
           <Label htmlFor="booking-amount">Agreed amount</Label>
           <Input id="booking-amount" inputMode="decimal" placeholder="0.00" aria-invalid={errors.agreed_amount ? true : undefined} {...register("agreed_amount")} />
-          {booking ? <p className="text-xs text-muted-foreground">Cannot be less than the amount already paid ({booking.paid}).</p> : null}
+          {booking ? <p className="text-xs text-muted-foreground">Cannot be less than the amount already paid ({formatAmount(booking.paid)}).</p> : null}
           <FieldError id="booking-amount-error" message={errors.agreed_amount?.message} />
         </div>
       </div>
@@ -188,7 +194,7 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
               <FieldError id="booking-pay-reference-error" message={errors.payment_reference?.message} />
             </div>
           </div>
-          <SaleFigures total={toDecimal(agreed)} paid={toDecimal(paying)} due={toDecimal(agreed - paying)} labels={["Agreed", "Paying now", "Due after booking"]} />
+          <AmountSummary total={toDecimal(agreed)} paid={toDecimal(paying)} due={toDecimal(agreed - paying)} labels={["Agreed", "Paying now", "Due after booking"]} />
           <p className="text-xs text-muted-foreground">Preview only. The server calculates the final figures.</p>
         </fieldset>
       )}
