@@ -3,6 +3,7 @@
 namespace App\Modules\Restaurant\Http\Requests;
 
 use App\Modules\Branch\Rules\AccessibleBranch;
+use App\Modules\Restaurant\Enums\PaymentMethod;
 use App\Modules\Restaurant\Models\RestaurantExpense;
 use App\Modules\Shared\Rules\MoneyAmount;
 use Illuminate\Foundation\Http\FormRequest;
@@ -17,7 +18,7 @@ class StoreRestaurantExpenseRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['description', 'reference'] as $field) {
+        foreach (['description', 'reference', 'payment_reference'] as $field) {
             if (is_string($this->input($field))) {
                 $this->merge([$field => trim($this->input($field)) ?: null]);
             }
@@ -34,6 +35,10 @@ class StoreRestaurantExpenseRequest extends FormRequest
             'amount' => ['required', new MoneyAmount],
             'description' => ['sometimes', 'nullable', 'string', 'max:255'],
             'reference' => ['sometimes', 'nullable', 'string', 'max:100'],
+            // Supplier dues: amount paid now (default: full amount). Without a supplier it must be the full amount.
+            'paid_amount' => ['sometimes', 'nullable', new MoneyAmount(allowZero: true)],
+            'payment_method' => ['sometimes', 'nullable', Rule::enum(PaymentMethod::class)],
+            'payment_reference' => ['sometimes', 'nullable', 'string', 'max:100'],
         ];
     }
 

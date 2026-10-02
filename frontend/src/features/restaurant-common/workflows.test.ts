@@ -3,7 +3,7 @@ import { missingMessage, missingPermissions } from "./permissions";
 
 vi.mock("@/lib/api-client", () => ({ apiRequest: vi.fn() }));
 const { apiRequest } = await import("@/lib/api-client");
-const { fetchAllPages, searchCustomers } = await import("./lookups");
+const { fetchAllPages, searchCustomers, searchEventMenu } = await import("./lookups");
 const mocked = vi.mocked(apiRequest);
 
 describe("workflow permissions (UI visibility; the API enforces access)", () => {
@@ -41,5 +41,13 @@ describe("lookups", () => {
     mocked.mockResolvedValueOnce(page([{ id: "c1", name: "Karim", phone: "+8801700000001" }], 1, 1));
     await expect(searchCustomers("kar")).resolves.toEqual([{ id: "c1", label: "Karim", hint: "+8801700000001" }]);
     expect(mocked.mock.calls[0][0]).toBe("/restaurant/customers?is_active=1&per_page=10&search=kar");
+  });
+
+  it("searches active event menu items for food packages (names only, no prices)", async () => {
+    mocked.mockResolvedValueOnce(page([{ id: "e1", name: "Polao", description: "Chinigura rice" }], 1, 1));
+    const options = await searchEventMenu("pol");
+    expect(options).toEqual([{ id: "e1", label: "Polao", hint: "Chinigura rice" }]);
+    expect(JSON.stringify(options)).not.toContain("price");
+    expect(mocked.mock.calls[0][0]).toBe("/restaurant/event-menu-items?is_active=1&per_page=10&search=pol");
   });
 });

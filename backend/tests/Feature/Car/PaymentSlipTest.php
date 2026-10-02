@@ -77,6 +77,10 @@ class PaymentSlipTest extends CarTestCase
         $voucher = $this->actingAs($user)->get("/api/v1/cars/{$this->car->id}/dealer-payments/{$dealerPayment->id}/voucher")->assertOk();
         $this->assertStringStartsWith('%PDF', $voucher->getContent());
 
+        // Vouchers and receipts are A4 documents.
+        $this->assertStringContainsString('/MediaBox [0.000 0.000 595.280 841.890]', $receipt->getContent());
+        $this->assertStringContainsString('/MediaBox [0.000 0.000 595.280 841.890]', $voucher->getContent());
+
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.payment_slip_printed', 'entity_id' => $payment->id, 'user_id' => $user->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.payment_slip_printed', 'entity_id' => $dealerPayment->id]);
     }

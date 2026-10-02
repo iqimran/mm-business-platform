@@ -58,7 +58,7 @@ export function ExpensesReport({ period }: { period: Period }) {
       {report.isError ? <p className="text-sm text-destructive">{errorMessage(report.error)}</p> : null}
       {report.data ? (
         <>
-          <Totals items={[["Expenses", report.data.totals.count], ["Total", report.data.totals.total]]} />
+          <Totals items={[["Expenses", report.data.totals.count], ["Total", report.data.totals.total], ["Paid", report.data.totals.paid], ["Supplier dues", report.data.totals.supplier_due]]} />
           <div className="rounded-lg border">
             <Table>
               <TableHeader>

@@ -107,10 +107,11 @@ class HallBookingTest extends RestaurantTestCase
         $this->book(['start_time' => '25:00'])->assertJsonValidationErrors('start_time');
         $this->book(['start_time' => '6pm'])->assertJsonValidationErrors('start_time');
         foreach (['0', '-1', 5000.5, '1.234', 'abc'] as $amount) {
-            $this->book(['agreed_amount' => $amount])->assertJsonValidationErrors('agreed_amount');
+            // "agreed_amount" is the former name of the hall charge; errors are reported on hall_charge.
+            $this->book(['agreed_amount' => $amount])->assertJsonValidationErrors('hall_charge');
         }
         $this->book(['payment' => ['amount' => '50000.01', 'method' => 'cash']])
-            ->assertJsonValidationErrors(['payment.amount' => 'The payment exceeds the agreed amount of 50000.00.']);
+            ->assertJsonValidationErrors(['payment.amount' => 'The payment exceeds the booking total of 50000.00.']);
         $this->book(['payment' => ['amount' => '100', 'method' => 'gold']])->assertJsonValidationErrors('payment.method');
 
         $this->assertSame(0, HallBooking::count());
@@ -249,7 +250,7 @@ class HallBookingTest extends RestaurantTestCase
         $this->actingAs($this->manager)->patchJson(self::BOOKINGS."/{$id}", ['end_time' => '17:00'])
             ->assertJsonValidationErrors(['end_time' => 'The end time must be after the start time.']);
         $this->actingAs($this->manager)->patchJson(self::BOOKINGS."/{$id}", ['agreed_amount' => '19999.99'])
-            ->assertJsonValidationErrors(['agreed_amount' => 'The agreed amount cannot be less than the amount already paid (20000.00).']);
+            ->assertJsonValidationErrors(['hall_charge' => 'The booking total (19999.99) cannot be less than the amount already paid (20000.00).']);
         $this->actingAs($this->manager)->patchJson(self::BOOKINGS."/{$id}", ['booking_date' => now()->subDay()->toDateString()])
             ->assertJsonValidationErrors('booking_date');
         $hallB = Hall::factory()->create(['branch_id' => $this->branchB->id]);
@@ -263,8 +264,8 @@ class HallBookingTest extends RestaurantTestCase
             ->assertJsonPath('data.due', '40000.00');
 
         $update = AuditLog::where('action', 'restaurant.booking.updated')->sole();
-        $this->assertSameValues(['start_time' => '18:00', 'end_time' => '22:00', 'agreed_amount' => '50000.00'], $update->old_values);
-        $this->assertSameValues(['start_time' => '17:00', 'end_time' => '23:00', 'agreed_amount' => '60000.00'], $update->new_values);
+        $this->assertSameValues(['start_time' => '18:00', 'end_time' => '22:00', 'hall_charge' => '50000.00', 'booking_total' => '50000.00'], $update->old_values);
+        $this->assertSameValues(['start_time' => '17:00', 'end_time' => '23:00', 'hall_charge' => '60000.00', 'booking_total' => '60000.00'], $update->new_values);
     }
 
     public function test_cancellation_rules(): void
@@ -417,7 +418,7 @@ class HallBookingTest extends RestaurantTestCase
         $payment = HallBookingPayment::sole();
         $row = fn (array $values) => $values + [
             'id' => strtolower((string) Str::ulid()), 'branch_id' => $this->branchA->id, 'hall_id' => $this->hall->id,
-            'customer_id' => $this->customer->id, 'booking_date' => $this->date, 'agreed_amount_minor' => 1000,
+            'customer_id' => $this->customer->id, 'booking_date' => $this->date, 'hall_charge_minor' => 1000, 'agreed_amount_minor' => 1000,
             'status' => 'confirmed', 'created_by' => $this->manager->id, 'created_at' => now(), 'updated_at' => now(),
         ];
 

@@ -10,7 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Hall booking with backend-computed figures (agreed amount, paid, due, payment_status).
+ * Hall booking with backend-computed figures: hall charge, event food package, booking total,
+ * paid, due and payment_status.
  *
  * @mixin HallBooking
  */
@@ -28,6 +29,18 @@ class HallBookingResource extends JsonResource
             'start_time' => $this->startsAt(),
             'end_time' => $this->endsAt(),
             'status' => $this->status->value,
+            'hall_charge' => Money::toDecimal($this->hall_charge_minor),
+            'food_package' => $this->whenLoaded('foodPackage', fn () => $this->foodPackage === null ? null : [
+                'id' => $this->foodPackage->id,
+                'name' => $this->foodPackage->name,
+                'guest_count' => $this->foodPackage->guest_count,
+                'price_per_head' => Money::toDecimal($this->foodPackage->price_per_head_minor),
+                'total' => Money::toDecimal($this->foodPackage->total_minor),
+                'notes' => $this->foodPackage->notes,
+                'items' => $this->foodPackage->relationLoaded('items')
+                    ? $this->foodPackage->items->map(fn ($item) => ['event_menu_item_id' => $item->event_menu_item_id, 'item_name' => $item->item_name])->values()->all()
+                    : null,
+            ]),
             ...app(BookingFinancials::class)->position($this->resource),
             'notes' => $this->notes,
             'payments' => $this->whenLoaded('payments', fn () => $this->payments->map(fn (HallBookingPayment $p) => [

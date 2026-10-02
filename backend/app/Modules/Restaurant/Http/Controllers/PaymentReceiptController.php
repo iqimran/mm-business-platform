@@ -8,6 +8,8 @@ use App\Modules\Restaurant\Models\FoodSale;
 use App\Modules\Restaurant\Models\FoodSalePayment;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Models\HallBookingPayment;
+use App\Modules\Restaurant\Models\RestaurantExpense;
+use App\Modules\Restaurant\Models\RestaurantExpensePayment;
 use App\Modules\Restaurant\Services\PaymentReceipt;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -37,5 +39,16 @@ class PaymentReceiptController extends Controller
             newValues: ['document' => PaymentReceipt::number('BR', $payment), 'booking_id' => $booking->id]);
 
         return $receipt->forBookingPayment($booking, $payment);
+    }
+
+    /** Supplier payment voucher: same access as viewing the expense (permission + branch). */
+    public function expensePayment(Request $request, RestaurantExpense $expense, RestaurantExpensePayment $payment, PaymentReceipt $receipt, AuditLogger $audit): Response
+    {
+        Gate::authorize('view', $expense);
+
+        $audit->record('restaurant.payment_receipt_printed', 'restaurant_expense_payment', $payment->id, $request->user()->id, $expense->branch_id,
+            newValues: ['document' => PaymentReceipt::number('SV', $payment), 'expense_id' => $expense->id]);
+
+        return $receipt->forExpensePayment($expense, $payment);
     }
 }

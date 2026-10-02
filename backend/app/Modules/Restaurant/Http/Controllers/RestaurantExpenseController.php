@@ -3,12 +3,16 @@
 namespace App\Modules\Restaurant\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Restaurant\Actions\RecordExpensePayment;
 use App\Modules\Restaurant\Actions\RecordRestaurantExpense;
+use App\Modules\Restaurant\Actions\ReverseExpensePayment;
 use App\Modules\Restaurant\Actions\ReverseRestaurantExpense;
+use App\Modules\Restaurant\Http\Requests\RecordExpensePaymentRequest;
 use App\Modules\Restaurant\Http\Requests\ReverseRestaurantExpenseRequest;
 use App\Modules\Restaurant\Http\Requests\StoreRestaurantExpenseRequest;
 use App\Modules\Restaurant\Http\Resources\RestaurantExpenseResource;
 use App\Modules\Restaurant\Models\RestaurantExpense;
+use App\Modules\Restaurant\Models\RestaurantExpensePayment;
 use App\Modules\Restaurant\Services\ExpenseQuery;
 use App\Modules\Shared\Http\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -25,6 +29,8 @@ class RestaurantExpenseController extends Controller
 {
     private const RELATIONS = ['branch:id,name,code', 'category:id,name', 'supplier:id,name', 'recorder:id,name', 'reverser:id,name'];
 
+    private const DETAIL_RELATIONS = [...self::RELATIONS, 'payments.recorder:id,name'];
+
     /** Longest range for the daily summary (keeps the grouped result small). */
     private const SUMMARY_MAX_DAYS = 366;
 
@@ -34,6 +40,7 @@ class RestaurantExpenseController extends Controller
 
         $filtered = $expenses->filtered($request->user(), $this->filters($request));
         $page = $filtered->clone()
+            ->withPaid()
             ->with(self::RELATIONS)
             ->orderByDesc('restaurant_expenses.expense_date')
             ->orderByDesc('restaurant_expenses.id')
@@ -79,21 +86,43 @@ class RestaurantExpenseController extends Controller
     {
         $expense = $record->handle($request->user(), $request->validated());
 
-        return ApiResponse::success(RestaurantExpenseResource::make($expense->load(self::RELATIONS))->resolve(), 'Expense recorded successfully.', 201);
+        return ApiResponse::success($this->detail($expense), 'Expense recorded successfully.', 201);
     }
 
     public function show(RestaurantExpense $expense): JsonResponse
     {
         Gate::authorize('view', $expense);
 
-        return ApiResponse::success(RestaurantExpenseResource::make($expense->load(self::RELATIONS))->resolve());
+        return ApiResponse::success($this->detail($expense));
     }
 
     public function reverse(ReverseRestaurantExpenseRequest $request, RestaurantExpense $expense, ReverseRestaurantExpense $reverse): JsonResponse
     {
-        $expense = $reverse->handle($request->user(), $expense, $request->validated('reason'));
+        $reverse->handle($request->user(), $expense, $request->validated('reason'));
 
-        return ApiResponse::success(RestaurantExpenseResource::make($expense->load(self::RELATIONS))->resolve(), 'Expense reversed successfully.');
+        return ApiResponse::success($this->detail($expense), 'Expense reversed successfully.');
+    }
+
+    /** Pays (part of) a supplier bill. */
+    public function storePayment(RecordExpensePaymentRequest $request, RestaurantExpense $expense, RecordExpensePayment $record): JsonResponse
+    {
+        $record->handle($request->user(), $expense, $request->validated());
+
+        return ApiResponse::success($this->detail($expense), 'Supplier payment recorded successfully.', 201);
+    }
+
+    public function reversePayment(ReverseRestaurantExpenseRequest $request, RestaurantExpense $expense, RestaurantExpensePayment $payment, ReverseExpensePayment $reverse): JsonResponse
+    {
+        $reverse->handle($request->user(), $expense, $payment, $request->validated('reason'));
+
+        return ApiResponse::success($this->detail($expense), 'Supplier payment reversed successfully.');
+    }
+
+    private function detail(RestaurantExpense $expense): array
+    {
+        $expense = RestaurantExpense::query()->withPaid()->with(self::DETAIL_RELATIONS)->findOrFail($expense->getKey());
+
+        return RestaurantExpenseResource::make($expense)->resolve();
     }
 
     /**
@@ -110,6 +139,7 @@ class RestaurantExpenseController extends Controller
             'date_to' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'state' => ['sometimes', Rule::in(['active', 'reversed'])],
             'search' => ['sometimes', 'string', 'max:100'],
+            'payment_status' => ['sometimes', Rule::in(['unpaid', 'partial', 'paid', 'due'])],
         ]);
     }
 }

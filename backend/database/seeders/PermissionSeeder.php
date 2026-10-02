@@ -81,6 +81,10 @@ class PermissionSeeder extends Seeder
         'restaurant.menu.create' => 'Create food menu items',
         'restaurant.menu.update' => 'Update food menu items (incl. price and availability)',
         'restaurant.menu.delete' => 'Delete food menu items',
+        'restaurant.event_menu.view' => 'View event menu items (food package items)',
+        'restaurant.event_menu.create' => 'Create event menu items',
+        'restaurant.event_menu.update' => 'Update or deactivate event menu items',
+        'restaurant.event_menu.delete' => 'Delete unused event menu items',
         'restaurant.sale.view' => 'View food sales',
         'restaurant.sale.create' => 'Record food sales',
         'restaurant.sale.reverse' => 'Reverse (cancel) food sales',
@@ -103,6 +107,8 @@ class PermissionSeeder extends Seeder
         'restaurant.expense.view' => 'View restaurant expenses and daily summaries',
         'restaurant.expense.create' => 'Record restaurant expenses',
         'restaurant.expense.reverse' => 'Reverse (correct) restaurant expenses',
+        'restaurant.supplier_payment.create' => 'Pay supplier bills (supplier dues)',
+        'restaurant.supplier_payment.reverse' => 'Reverse (correct) supplier payments',
         'restaurant.report.view' => 'View restaurant reports (each area also needs its own view permission)',
     ];
 

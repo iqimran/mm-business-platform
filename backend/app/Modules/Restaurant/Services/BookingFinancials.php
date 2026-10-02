@@ -7,7 +7,8 @@ use App\Modules\Restaurant\Support\PaymentFormulas;
 use App\Modules\Shared\Support\Money;
 
 /**
- * Per-booking figures (agreed amount, paid, due, payment status), always from PaymentFormulas.
+ * Per-booking figures (booking total, paid, due, payment status), always from PaymentFormulas.
+ * Booking total (agreed_amount_minor) = hall charge + event food package total.
  */
 class BookingFinancials
 {
@@ -23,13 +24,15 @@ class BookingFinancials
     }
 
     /**
-     * @return array{agreed_amount: string, paid: string, due: string, payment_status: string}
+     * @return array{booking_total: string, agreed_amount: string, paid: string, due: string, payment_status: string}
      */
     public function position(HallBooking $booking): array
     {
         $paid = $this->paid($booking);
 
         return [
+            'booking_total' => Money::toDecimal($booking->agreed_amount_minor),
+            // Former name of the booking total, kept for compatibility.
             'agreed_amount' => Money::toDecimal($booking->agreed_amount_minor),
             'paid' => Money::toDecimal($paid),
             'due' => Money::toDecimal(PaymentFormulas::due($booking->agreed_amount_minor, $paid)),

@@ -8,16 +8,20 @@ use App\Modules\Restaurant\Enums\BookingStatus;
 use App\Modules\Restaurant\Models\Hall;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Services\BookingFinancials;
+use App\Modules\Restaurant\Services\FoodPackages;
 use App\Modules\Restaurant\Services\HallAvailability;
 use App\Modules\Restaurant\Support\BookingOverlapGuard;
+use App\Modules\Restaurant\Support\FoodPackageFormulas;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 /**
- * Changes a confirmed booking (hall within the same branch, customer, date/time, agreed amount, notes).
- * Re-checks availability, keeps the agreed amount at or above what was paid, audits old → new values.
+ * Changes a confirmed booking (hall within the same branch, customer, date/time, hall charge, notes) and
+ * sets/replaces/removes its event food package. Recalculates booking total = hall charge + package total,
+ * keeps it at or above what was paid, re-checks availability, audits old → new values.
  */
 class UpdateHallBooking
 {
@@ -25,11 +29,13 @@ class UpdateHallBooking
         private readonly AuditLogger $audit,
         private readonly HallAvailability $availability,
         private readonly BookingFinancials $financials,
+        private readonly FoodPackages $packages,
     ) {}
 
     /**
      * @param  array{hall_id?: string, customer_id?: string, booking_date?: string, start_time?: string, end_time?: string,
-     *               agreed_amount?: string|int, notes?: string|null}  $data
+     *               hall_charge?: string|int, notes?: string|null, food_package?: array<string, mixed>|null}  $data
+     *        food_package: an array sets/replaces the package, null removes it, absent leaves it unchanged.
      */
     public function handle(User $actor, HallBooking $booking, array $data): HallBooking
     {
@@ -47,19 +53,23 @@ class UpdateHallBooking
             }
 
             $attributes = array_intersect_key($data, array_flip(['hall_id', 'customer_id', 'booking_date', 'start_time', 'end_time', 'notes']));
-            if (array_key_exists('agreed_amount', $data)) {
-                $attributes['agreed_amount_minor'] = Money::toMinor($data['agreed_amount']);
-                $paid = $this->financials->paid($booking);
-
-                if ($attributes['agreed_amount_minor'] < $paid) {
-                    throw ValidationException::withMessages([
-                        'agreed_amount' => 'The agreed amount cannot be less than the amount already paid ('.Money::toDecimal($paid).').',
-                    ]);
-                }
+            if (array_key_exists('hall_charge', $data)) {
+                $attributes['hall_charge_minor'] = Money::toMinor($data['hall_charge']);
             }
 
             $old = $this->snapshot($booking);
             $booking->fill($attributes);
+
+            // Event food package: set/replace, remove, or leave as is.
+            $packageBefore = null;
+            $packageChanged = array_key_exists('food_package', $data);
+            if ($packageChanged) {
+                $packageBefore = $data['food_package'] === null
+                    ? $this->packages->remove($booking)
+                    : $this->packages->set($actor, $booking, $data['food_package']);
+            }
+
+            $this->applyTotal($booking);
 
             if ($booking->isDirty(['hall_id', 'booking_date', 'start_time', 'end_time'])) {
                 $conflicts = $this->availability->conflicts(
@@ -80,8 +90,46 @@ class UpdateHallBooking
                     newValues: array_intersect_key($new, array_flip($changed)));
             }
 
+            if ($packageChanged) {
+                $packageAfter = $booking->foodPackage ? FoodPackages::snapshot($booking->foodPackage) : null;
+                $action = match (true) {
+                    $packageBefore === null && $packageAfter !== null => 'restaurant.booking.food_package_added',
+                    $packageBefore !== null && $packageAfter === null => 'restaurant.booking.food_package_removed',
+                    $packageBefore !== $packageAfter => 'restaurant.booking.food_package_updated',
+                    default => null,
+                };
+                if ($action !== null) {
+                    $this->audit->record($action, 'restaurant_hall_booking', $booking->id, $actor->id, $booking->branch_id,
+                        oldValues: ['food_package' => $packageBefore, 'booking_total' => $old['booking_total']],
+                        newValues: ['food_package' => $packageAfter, 'booking_total' => $new['booking_total']]);
+                }
+            }
+
             return $booking;
         }));
+    }
+
+    /** Booking total = hall charge + package total; never zero and never below what was paid. */
+    private function applyTotal(HallBooking $booking): void
+    {
+        try {
+            $total = FoodPackageFormulas::bookingTotal($booking->hall_charge_minor, $booking->foodPackage?->total_minor);
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages(['hall_charge' => 'The booking total is too large.']);
+        }
+
+        if ($total <= 0) {
+            throw ValidationException::withMessages(['hall_charge' => 'Enter a hall charge or add a food package.']);
+        }
+
+        $paid = $this->financials->paid($booking);
+        if ($total < $paid) {
+            throw ValidationException::withMessages([
+                'hall_charge' => 'The booking total ('.Money::toDecimal($total).') cannot be less than the amount already paid ('.Money::toDecimal($paid).').',
+            ]);
+        }
+
+        $booking->agreed_amount_minor = $total;
     }
 
     /**
@@ -95,7 +143,8 @@ class UpdateHallBooking
             'booking_date' => $booking->booking_date->toDateString(),
             'start_time' => $booking->startsAt(),
             'end_time' => $booking->endsAt(),
-            'agreed_amount' => Money::toDecimal($booking->agreed_amount_minor),
+            'hall_charge' => Money::toDecimal($booking->hall_charge_minor),
+            'booking_total' => Money::toDecimal($booking->agreed_amount_minor),
             'notes' => $booking->notes,
         ];
     }

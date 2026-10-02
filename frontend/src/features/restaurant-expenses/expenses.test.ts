@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { expenseSchema, rangeDays, toExpenseInput, type ExpenseValues } from "./schemas";
+import { duePreview, expenseSchema, rangeDays, toExpenseInput, type ExpenseValues } from "./schemas";
 import { today } from "@/features/restaurant-common/dates";
 
 const values = (overrides: Partial<ExpenseValues> = {}): ExpenseValues => ({
@@ -10,6 +10,9 @@ const values = (overrides: Partial<ExpenseValues> = {}): ExpenseValues => ({
   amount: "10000",
   description: "",
   reference: "",
+  paid_amount: "",
+  payment_method: "cash",
+  payment_reference: "",
   ...overrides,
 });
 
@@ -46,8 +49,42 @@ describe("toExpenseInput", () => {
       amount: "500.5",
       description: "Fish",
       reference: null,
+      paid_amount: null,
+      payment_method: "cash",
+      payment_reference: null,
     });
     expect(toExpenseInput(values()).supplier_id).toBeNull();
+  });
+
+  it("sends the amount paid now only for supplier bills (empty = full amount)", () => {
+    const supplier = { id: "s1", label: "Fresh" };
+    expect(toExpenseInput(values({ supplier, paid_amount: "4000", payment_reference: " BK-1 " }))).toMatchObject({ paid_amount: "4000", payment_reference: "BK-1" });
+    expect(toExpenseInput(values({ supplier, paid_amount: "0" })).paid_amount).toBe("0");
+    expect(toExpenseInput(values({ supplier })).paid_amount).toBeNull();
+    expect(toExpenseInput(values({ paid_amount: "4000" })).paid_amount).toBeNull();
+  });
+});
+
+describe("supplier dues on the expense form", () => {
+  const supplier = { id: "s1", label: "Fresh" };
+
+  it("allows partial or no payment for supplier bills", () => {
+    expect(issues(values({ supplier, paid_amount: "4000" }))).toEqual({});
+    expect(issues(values({ supplier, paid_amount: "0" }))).toEqual({});
+    expect(issues(values({ supplier, paid_amount: "10000.01" })).paid_amount).toBe("The amount paid cannot exceed the expense amount.");
+    expect(issues(values({ supplier, paid_amount: "1,000" })).paid_amount).toBeDefined();
+  });
+
+  it("requires a supplier for anything not fully paid", () => {
+    expect(issues(values({ paid_amount: "4000" })).paid_amount).toBe("Select a supplier for an expense that is not fully paid.");
+    expect(issues(values({ paid_amount: "10000" }))).toEqual({});
+  });
+
+  it("previews the due without floating point", () => {
+    expect(duePreview("10000", "4000")).toBe("6000.00");
+    expect(duePreview("10000", "")).toBe("0.00");
+    expect(duePreview("0.30", "0.10")).toBe("0.20");
+    expect(duePreview("abc", "1")).toBeNull();
   });
 });
 

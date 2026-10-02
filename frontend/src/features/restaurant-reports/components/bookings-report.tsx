@@ -45,7 +45,16 @@ export function BookingsReport({ period }: { period: Period }) {
       {report.isError ? <p className="text-sm text-destructive">{errorMessage(report.error)}</p> : null}
       {report.data ? (
         <>
-          <Totals items={[["Bookings", report.data.totals.count], ["Booking amount", report.data.totals.agreed_amount], ["Payments received", report.data.totals.paid], ["Outstanding due", report.data.totals.due]]} />
+          <Totals
+            items={[
+              ["Bookings", report.data.totals.count],
+              ["Hall charges", report.data.totals.hall_charges],
+              ["Food packages", report.data.totals.food_packages],
+              ["Booking total", report.data.totals.booking_total],
+              ["Payments received", report.data.totals.paid],
+              ["Outstanding due", report.data.totals.due],
+            ]}
+          />
           {report.data.totals.cancelled_count > 0 ? (
             <p className="text-xs text-muted-foreground">{report.data.totals.cancelled_count} cancelled booking(s) listed; they are not included in the totals.</p>
           ) : null}
@@ -57,7 +66,9 @@ export function BookingsReport({ period }: { period: Period }) {
                   {head("Event date", "booking_date")}
                   <TableHead>Hall</TableHead>
                   <TableHead className="hidden md:table-cell">Customer</TableHead>
-                  {head("Amount", "agreed_amount", "right")}
+                  <TableHead className="hidden text-right md:table-cell">Hall charge</TableHead>
+                  <TableHead className="hidden text-right md:table-cell">Food package</TableHead>
+                  {head("Total", "booking_total", "right")}
                   {head("Paid", "paid", "right")}
                   {head("Due", "due", "right")}
                   <TableHead>Status</TableHead>
@@ -66,7 +77,7 @@ export function BookingsReport({ period }: { period: Period }) {
               <TableBody>
                 {report.data.items.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="py-8 text-center text-muted-foreground">
+                    <TableCell colSpan={10} className="py-8 text-center text-muted-foreground">
                       No bookings in this period.
                     </TableCell>
                   </TableRow>
@@ -85,7 +96,12 @@ export function BookingsReport({ period }: { period: Period }) {
                       {b.hall} <span className="text-muted-foreground">· {b.branch.code}</span>
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{b.customer}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatAmount(b.agreed_amount)}</TableCell>
+                    <TableCell className="hidden text-right tabular-nums md:table-cell">{formatAmount(b.hall_charge)}</TableCell>
+                    <TableCell className="hidden text-right tabular-nums md:table-cell whitespace-normal">
+                      {b.food_package ? formatAmount(b.food_package) : "—"}
+                      {b.food_package_guests ? <div className="text-xs text-muted-foreground">{b.food_package_guests} guests</div> : null}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatAmount(b.booking_total)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(b.paid)}</TableCell>
                     <TableCell className="text-right tabular-nums">{formatAmount(b.due)}</TableCell>
                     <TableCell>

@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\DB;
  * SEPARATELY: the restaurant domain defines no cost model, so no profit/net figure is calculated.
  *
  * - Food sale revenue:    active sales sold in the period (sale totals); received/due against those sales.
- * - Hall booking revenue: non-cancelled bookings whose event date is in the period (agreed amounts); received/due against them.
+ * - Hall booking revenue: booking totals of non-cancelled bookings whose event date is in the period, split into
+ *                         hall charges and event food packages; received/due are for whole bookings (payments are not split).
  * - Collected in period:  active payments dated in the period (cash view), whatever the document date.
  * - Expenses:             active expenses dated in the period.
  * Sections the user may not view are null.
@@ -63,7 +64,11 @@ class FinancialSummary
 
         return [
             'count' => $summary['count'],
-            'revenue' => $summary['agreed_amount'],
+            'revenue' => $summary['booking_total'],
+            // Revenue split: hall charges and event food packages (separate from food sales).
+            'hall_charges' => $summary['hall_charges'],
+            'food_packages' => $summary['food_packages'],
+            'food_package_count' => $summary['food_package_count'],
             'received' => $summary['paid'],
             'outstanding_due' => $summary['due'],
             'collected_in_period' => $this->collected($user, 'restaurant_hall_booking_payments', $filters),

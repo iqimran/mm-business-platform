@@ -2,6 +2,7 @@
 
 namespace App\Modules\Restaurant\Http\Requests;
 
+use App\Modules\Restaurant\Http\Requests\Concerns\ValidatesFoodPackage;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Shared\Rules\MoneyAmount;
 use Illuminate\Foundation\Http\FormRequest;
@@ -13,6 +14,8 @@ use Illuminate\Validation\Validator;
  */
 class UpdateHallBookingRequest extends FormRequest
 {
+    use ValidatesFoodPackage;
+
     private function booking(): HallBooking
     {
         return $this->route('booking');
@@ -25,6 +28,7 @@ class UpdateHallBookingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeBookingAmounts();
         if (is_string($this->input('notes'))) {
             $this->merge(['notes' => trim($this->input('notes')) ?: null]);
         }
@@ -45,8 +49,9 @@ class UpdateHallBookingRequest extends FormRequest
                 'before_or_equal:'.now()->addYears(5)->toDateString()],
             'start_time' => ['sometimes', 'date_format:H:i'],
             'end_time' => ['sometimes', 'date_format:H:i'],
-            'agreed_amount' => ['sometimes', new MoneyAmount],
+            'hall_charge' => ['sometimes', new MoneyAmount(allowZero: true)],
             'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
+            ...$this->foodPackageRules(),
         ];
     }
 
@@ -70,6 +75,7 @@ class UpdateHallBookingRequest extends FormRequest
             'hall_id.exists' => 'Select a hall of the same branch.',
             'customer_id.exists' => 'Select an active customer.',
             'booking_date.after_or_equal' => 'The booking date cannot be in the past.',
+            ...$this->foodPackageMessages(),
         ];
     }
 }

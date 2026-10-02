@@ -26,7 +26,7 @@ function Figure({ label, value, tone }: { label: string; value: string; tone?: "
   );
 }
 
-function Stream({ title, countLabel, data, href }: { title: string; countLabel: string; data: StreamSummary; href: string }) {
+function Stream({ title, countLabel, data, href, note }: { title: string; countLabel: string; data: StreamSummary; href: string; note?: string }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border p-3">
       <div className="flex items-baseline justify-between gap-2">
@@ -42,6 +42,7 @@ function Stream({ title, countLabel, data, href }: { title: string; countLabel: 
         <Figure label="Received" value={data.received} />
         <Figure label="Due" value={data.outstanding_due} tone="bad" />
       </div>
+      {note ? <p className="text-xs text-muted-foreground">{note}</p> : null}
     </div>
   );
 }
@@ -86,7 +87,15 @@ export function RestaurantDashboardCard() {
           <>
             <div className="grid gap-3 lg:grid-cols-3">
               {d.food_sales ? <Stream title="Food sales" countLabel="sales" data={d.food_sales} href="/restaurant/sales" /> : null}
-              {d.hall_bookings ? <Stream title="Hall bookings" countLabel="bookings" data={d.hall_bookings} href="/restaurant/bookings" /> : null}
+              {d.hall_bookings ? (
+                <Stream
+                  title="Hall bookings"
+                  countLabel="bookings"
+                  data={d.hall_bookings}
+                  href="/restaurant/bookings"
+                  note={`Hall charges ${formatAmount(d.hall_bookings.hall_charges)} · Food packages ${formatAmount(d.hall_bookings.food_packages)}`}
+                />
+              ) : null}
               {d.expenses ? (
                 <div className="flex flex-col gap-3 rounded-lg border p-3">
                   <div className="flex items-baseline justify-between gap-2">
@@ -95,7 +104,10 @@ export function RestaurantDashboardCard() {
                     </Link>
                     <span className="text-xs text-muted-foreground">{d.expenses.count} entries</span>
                   </div>
-                  <Figure label="Total" value={d.expenses.total} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Figure label="Total" value={d.expenses.total} />
+                    <Figure label="Supplier dues" value={d.expenses.supplier_due} tone="bad" />
+                  </div>
                 </div>
               ) : null}
             </div>

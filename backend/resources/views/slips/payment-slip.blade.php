@@ -4,28 +4,29 @@
     <meta charset="utf-8">
     <title>{{ $title }} {{ $number }}</title>
     <style>
-        @page { margin: 12mm 11mm; }
-        body { font-family: "DejaVu Sans", sans-serif; font-size: 9pt; color: #111; }
+        /* A4 voucher */
+        @page { margin: 16mm 18mm; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; color: #111; }
         .head { text-align: center; border-bottom: 2px solid #111; padding-bottom: 6px; margin-bottom: 8px; }
-        .business { font-size: 15pt; font-weight: bold; }
-        .business-line { color: #333; font-size: 8pt; margin-top: 1px; }
-        .branch { color: #444; font-size: 8pt; margin-top: 2px; }
+        .business { font-size: 18pt; font-weight: bold; }
+        .business-line { color: #333; font-size: 9pt; margin-top: 1px; }
+        .branch { color: #444; font-size: 9pt; margin-top: 2px; }
         .title { display: inline-block; margin-top: 6px; padding: 2px 14px; border: 1.5px solid #111; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; }
         .meta td { padding: 2px 0; }
         .label { color: #555; width: 38%; }
         .amount-box { margin: 10px 0; border: 1.5px solid #111; padding: 6px 8px; }
-        .amount { font-size: 15pt; font-weight: bold; }
+        .amount { font-size: 18pt; font-weight: bold; }
         .words { font-style: italic; margin-top: 2px; }
         .section { margin-top: 8px; font-weight: bold; border-bottom: 1px solid #bbb; padding-bottom: 2px; }
         .figures td { padding: 2px 0; }
         .figures td.num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
         .figures tr.total td { border-top: 1px solid #111; font-weight: bold; }
-        .sign { margin-top: 34px; }
+        .sign { margin-top: 50px; }
         .sign td { width: 50%; text-align: center; padding-top: 3px; }
         .sign span { display: inline-block; width: 80%; border-top: 1px solid #111; padding-top: 3px; }
-        .foot { margin-top: 10px; font-size: 7pt; color: #666; text-align: center; }
-        .void { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 60pt; font-weight: bold; color: rgba(185, 28, 28, 0.18); transform: rotate(-25deg); }
+        .foot { margin-top: 12px; font-size: 8pt; color: #666; text-align: center; }
+        .void { position: fixed; top: 38%; left: 0; right: 0; text-align: center; font-size: 90pt; font-weight: bold; color: rgba(185, 28, 28, 0.18); transform: rotate(-25deg); }
         .void-note { margin-top: 6px; padding: 4px 6px; border: 1px solid #b91c1c; color: #b91c1c; font-size: 8pt; }
     </style>
 </head>

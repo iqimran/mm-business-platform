@@ -12,7 +12,8 @@ use Illuminate\Validation\Rule;
 
 /**
  * Hall bookings report by event date. Without a status filter cancelled bookings are left out;
- * totals never include cancelled bookings (their agreed amount is not revenue and nothing is due).
+ * totals never include cancelled bookings (their amount is not revenue and nothing is due).
+ * Booking total = hall charge + event food package; received/due are for the whole booking.
  */
 class BookingsReport extends RestaurantReport
 {
@@ -43,7 +44,9 @@ class BookingsReport extends RestaurantReport
             ['label' => 'Hall', 'type' => 'text', 'value' => fn ($r) => $r['hall']],
             ['label' => 'Customer', 'type' => 'text', 'value' => fn ($r) => $r['customer']],
             ['label' => 'Status', 'type' => 'text', 'value' => fn ($r) => $r['status']],
-            ['label' => 'Booking amount', 'type' => 'money', 'value' => fn ($r) => $r['agreed_amount'], 'total' => fn ($t) => $t['agreed_amount']],
+            ['label' => 'Hall charge', 'type' => 'money', 'value' => fn ($r) => $r['hall_charge'], 'total' => fn ($t) => $t['hall_charges']],
+            ['label' => 'Food package', 'type' => 'money', 'value' => fn ($r) => $r['food_package'], 'total' => fn ($t) => $t['food_packages']],
+            ['label' => 'Booking total', 'type' => 'money', 'value' => fn ($r) => $r['booking_total'], 'total' => fn ($t) => $t['booking_total']],
             ['label' => 'Received', 'type' => 'money', 'value' => fn ($r) => $r['paid'], 'total' => fn ($t) => $t['paid']],
             ['label' => 'Due', 'type' => 'money', 'value' => fn ($r) => $r['due'], 'total' => fn ($t) => $t['due']],
             ['label' => 'Payment status', 'type' => 'text', 'value' => fn ($r) => $r['payment_status']],
@@ -68,6 +71,8 @@ class BookingsReport extends RestaurantReport
             'booking_date' => 'restaurant_hall_bookings.booking_date',
             'booking_no' => 'restaurant_hall_bookings.booking_no',
             'agreed_amount' => 'restaurant_hall_bookings.agreed_amount_minor',
+            'booking_total' => 'restaurant_hall_bookings.agreed_amount_minor',
+            'hall_charge' => 'restaurant_hall_bookings.hall_charge_minor',
             'paid' => $paid,
             'due' => "(restaurant_hall_bookings.agreed_amount_minor - {$paid})",
         ];
@@ -91,7 +96,7 @@ class BookingsReport extends RestaurantReport
 
         $page = $filtered->clone()
             ->withPaid()
-            ->with(['branch:id,name,code', 'hall:id,name', 'customer:id,name'])
+            ->with(['branch:id,name,code', 'hall:id,name', 'customer:id,name', 'foodPackage'])
             ->orderByRaw("{$this->sortable('')[$input['sort']]} {$input['direction']}")
             ->orderBy('restaurant_hall_bookings.start_time', $input['direction'])
             ->orderBy('restaurant_hall_bookings.id', 'desc');
@@ -110,6 +115,11 @@ class BookingsReport extends RestaurantReport
                 'branch' => $b->branch->only('id', 'code', 'name'),
                 'hall' => $b->hall->name,
                 'customer' => $b->customer->name,
+                'hall_charge' => self::money($b->hall_charge_minor),
+                'food_package' => $b->foodPackage ? self::money($b->foodPackage->total_minor) : null,
+                'food_package_name' => $b->foodPackage?->name,
+                'food_package_guests' => $b->foodPackage?->guest_count,
+                'booking_total' => self::money($b->agreed_amount_minor),
                 'agreed_amount' => self::money($b->agreed_amount_minor),
                 'paid' => self::money($b->paid_minor),
                 // A cancelled booking owes nothing.
@@ -118,6 +128,9 @@ class BookingsReport extends RestaurantReport
             ];
         }, [
             'count' => $summary['count'],
+            'hall_charges' => $summary['hall_charges'],
+            'food_packages' => $summary['food_packages'],
+            'booking_total' => $summary['booking_total'],
             'agreed_amount' => $summary['agreed_amount'],
             'paid' => $summary['paid'],
             'due' => $summary['due'],

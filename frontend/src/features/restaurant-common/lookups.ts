@@ -23,6 +23,30 @@ export async function searchSuppliers(term: string): Promise<PickerOption[]> {
   return page.items.map((s) => ({ id: s.id, label: s.name, hint: [s.contact_person, s.phone].filter(Boolean).join(" · ") || undefined }));
 }
 
+export type MenuOption = { id: string; label: string; hint?: string; price: string };
+
+/** Server-side search of available menu items (a few matches, never the whole menu). */
+export async function searchMenu(term: string): Promise<MenuOption[]> {
+  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
+  if (term) params.set("search", term);
+  const page = await apiRequest<Paginated<{ id: string; name: string; price: string; category?: { name: string; is_active: boolean } }>>(
+    `/restaurant/menu-items?${params}`,
+  );
+
+  return page.items
+    .filter((item) => item.category?.is_active !== false)
+    .map((item) => ({ id: item.id, label: item.name, price: item.price, hint: `${item.category?.name ?? ""} · ${item.price}` }));
+}
+
+/** Server-side search of active event menu items (food package dishes; no prices). */
+export async function searchEventMenu(term: string): Promise<PickerOption[]> {
+  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
+  if (term) params.set("search", term);
+  const page = await apiRequest<Paginated<{ id: string; name: string; description: string | null }>>(`/restaurant/event-menu-items?${params}`);
+
+  return page.items.map((item) => ({ id: item.id, label: item.name, hint: item.description ?? undefined }));
+}
+
 /**
  * Every record of a small catalog (categories, halls) for dropdowns, so nothing is silently cut off.
  * Bounded to 1,000 records as a safety net; large lists must use a searchable picker instead.

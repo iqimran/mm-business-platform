@@ -24,6 +24,9 @@ class ReverseRestaurantExpense
             if ($expense->isReversed()) {
                 throw new ConflictHttpException('This expense has already been reversed.');
             }
+            if ($expense->payments()->active()->exists()) {
+                throw new ConflictHttpException('This expense has supplier payments. Reverse its payments first.');
+            }
 
             $expense->forceFill([
                 'reversed_at' => now(),

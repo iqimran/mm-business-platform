@@ -33,7 +33,7 @@ class HallBookingController extends Controller
 {
     private const DETAIL_RELATIONS = [
         'branch:id,name,code', 'hall:id,name,capacity,is_active', 'customer:id,name,phone',
-        'payments.recorder:id,name', 'creator:id,name', 'canceller:id,name',
+        'payments.recorder:id,name', 'creator:id,name', 'canceller:id,name', 'foodPackage.items',
     ];
 
     public function index(Request $request, HallBookingQuery $bookings): JsonResponse
@@ -54,7 +54,7 @@ class HallBookingController extends Controller
         $filtered = $bookings->filtered($request->user(), $filters);
         $page = $filtered->clone()
             ->withPaid()
-            ->with(['branch:id,name,code', 'hall:id,name,capacity,is_active', 'customer:id,name,phone'])
+            ->with(['branch:id,name,code', 'hall:id,name,capacity,is_active', 'customer:id,name,phone', 'foodPackage'])
             ->orderByDesc('restaurant_hall_bookings.booking_date')
             ->orderByDesc('restaurant_hall_bookings.start_time')
             ->orderByDesc('restaurant_hall_bookings.id')

@@ -151,7 +151,7 @@ class RestaurantReportTest extends RestaurantTestCase
     public function test_booking_totals_status_and_date_filtering(): void
     {
         $this->report('/bookings')->assertOk()
-            ->assertJsonPath('data.totals', ['count' => 2, 'agreed_amount' => '3000.00', 'paid' => '400.00', 'due' => '2600.00', 'cancelled_count' => 0])
+            ->assertJsonPath('data.totals', ['count' => 2, 'hall_charges' => '3000.00', 'food_packages' => '0.00', 'booking_total' => '3000.00', 'agreed_amount' => '3000.00', 'paid' => '400.00', 'due' => '2600.00', 'cancelled_count' => 0])
             ->assertJsonPath('data.pagination.total', 2);
 
         $this->report("/bookings?date={$this->today}")
@@ -164,7 +164,7 @@ class RestaurantReportTest extends RestaurantTestCase
             ->assertJsonPath('data.items.0.status', 'cancelled')
             ->assertJsonPath('data.items.0.due', '0.00')
             ->assertJsonPath('data.items.0.payment_status', null)
-            ->assertJsonPath('data.totals', ['count' => 0, 'agreed_amount' => '0.00', 'paid' => '0.00', 'due' => '0.00', 'cancelled_count' => 1]);
+            ->assertJsonPath('data.totals', ['count' => 0, 'hall_charges' => '0.00', 'food_packages' => '0.00', 'booking_total' => '0.00', 'agreed_amount' => '0.00', 'paid' => '0.00', 'due' => '0.00', 'cancelled_count' => 1]);
         $this->report('/bookings?status=confirmed&payment_status=partial')->assertJsonPath('data.totals.count', 1);
         $this->report('/bookings?sort=due&direction=desc')->assertJsonPath('data.items.0.due', '2000.00');
         $this->report('/bookings?status=pending')->assertJsonValidationErrors('status');
@@ -179,7 +179,7 @@ class RestaurantReportTest extends RestaurantTestCase
                 ['date' => $this->today, 'count' => 2, 'total' => '500.00'],
                 ['date' => $this->yesterday, 'count' => 1, 'total' => '100.00'],
             ])
-            ->assertJsonPath('data.totals', ['count' => 3, 'total' => '600.00']);
+            ->assertJsonPath('data.totals', ['count' => 3, 'total' => '600.00', 'paid' => '600.00', 'supplier_due' => '0.00']);
 
         $this->report('/expenses?group_by=category')
             ->assertJsonPath('data.items.0.category', 'Food Purchase')
@@ -232,8 +232,8 @@ class RestaurantReportTest extends RestaurantTestCase
 
         $this->assertSame(['date_from' => $this->today, 'date_to' => $this->today], $summary['period']);
         $this->assertSame(['count' => 2, 'revenue' => '450.00', 'received' => '250.00', 'outstanding_due' => '200.00', 'collected_in_period' => '250.00'], $summary['food_sales']);
-        $this->assertSame(['count' => 1, 'revenue' => '1000.00', 'received' => '400.00', 'outstanding_due' => '600.00', 'collected_in_period' => '400.00'], $summary['hall_bookings']);
-        $this->assertSame(['count' => 2, 'total' => '500.00'], $summary['expenses']);
+        $this->assertSame(['count' => 1, 'revenue' => '1000.00', 'hall_charges' => '1000.00', 'food_packages' => '0.00', 'food_package_count' => 0, 'received' => '400.00', 'outstanding_due' => '600.00', 'collected_in_period' => '400.00'], $summary['hall_bookings']);
+        $this->assertSame(['count' => 2, 'total' => '500.00', 'paid' => '500.00', 'supplier_due' => '0.00'], $summary['expenses']);
         // No profit/net figure: the restaurant domain defines no cost model.
         foreach (['profit', 'net', 'net_income', 'balance'] as $key) {
             $this->assertArrayNotHasKey($key, $summary);

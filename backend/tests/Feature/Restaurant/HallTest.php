@@ -85,7 +85,7 @@ class HallTest extends RestaurantTestCase
         HallBooking::create([
             'booking_no' => 'HB-T1', 'branch_id' => $this->branchA->id, 'hall_id' => $hall->id,
             'customer_id' => RestaurantCustomer::factory()->create()->id, 'booking_date' => now()->addDay()->toDateString(),
-            'start_time' => '18:00', 'end_time' => '22:00', 'agreed_amount_minor' => 100000, 'created_by' => $manager->id,
+            'start_time' => '18:00', 'end_time' => '22:00', 'hall_charge_minor' => 100000, 'agreed_amount_minor' => 100000, 'created_by' => $manager->id,
         ]);
 
         $this->actingAs($manager)->deleteJson(self::HALLS."/{$hall->id}")->assertStatus(409);

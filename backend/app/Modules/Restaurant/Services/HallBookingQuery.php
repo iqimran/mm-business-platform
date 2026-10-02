@@ -45,7 +45,7 @@ class HallBookingQuery
     /**
      * Totals of the filtered bookings, excluding cancelled ones.
      *
-     * @return array{count: int, agreed_amount: string, paid: string, due: string}
+     * @return array{count: int, hall_charges: string, food_packages: string, food_package_count: int, booking_total: string, agreed_amount: string, paid: string, due: string}
      */
     public function summary(Builder $filtered): array
     {
@@ -53,13 +53,21 @@ class HallBookingQuery
             ->fromSub($filtered->clone()
                 ->where('restaurant_hall_bookings.status', '!=', BookingStatus::Cancelled->value)
                 ->toBase()
-                ->select('restaurant_hall_bookings.agreed_amount_minor')
+                ->leftJoin('restaurant_hall_booking_food_packages as fp', 'fp.booking_id', '=', 'restaurant_hall_bookings.id')
+                ->select('restaurant_hall_bookings.agreed_amount_minor', 'restaurant_hall_bookings.hall_charge_minor')
+                ->selectRaw('coalesce(fp.total_minor, 0) AS package_minor')
                 ->selectRaw(HallBooking::paidSql().' AS paid_minor'), 'b')
-            ->selectRaw('count(*) AS bookings, coalesce(sum(agreed_amount_minor), 0) AS agreed, coalesce(sum(paid_minor), 0) AS paid')
+            ->selectRaw('count(*) AS bookings, coalesce(sum(agreed_amount_minor), 0) AS agreed, coalesce(sum(hall_charge_minor), 0) AS hall,
+                coalesce(sum(package_minor), 0) AS packages, count(*) FILTER (WHERE package_minor > 0) AS with_package, coalesce(sum(paid_minor), 0) AS paid')
             ->first();
 
         return [
             'count' => (int) $row->bookings,
+            // Booking total = hall charges + food packages (payments are not split between the two).
+            'hall_charges' => Money::toDecimal((int) $row->hall),
+            'food_packages' => Money::toDecimal((int) $row->packages),
+            'food_package_count' => (int) $row->with_package,
+            'booking_total' => Money::toDecimal((int) $row->agreed),
             'agreed_amount' => Money::toDecimal((int) $row->agreed),
             'paid' => Money::toDecimal((int) $row->paid),
             'due' => Money::toDecimal((int) $row->agreed - (int) $row->paid),

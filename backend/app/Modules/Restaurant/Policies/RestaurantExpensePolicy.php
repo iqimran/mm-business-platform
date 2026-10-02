@@ -30,4 +30,15 @@ class RestaurantExpensePolicy extends BranchScopedPolicy
     {
         return $this->allows($user, 'restaurant.expense.reverse', $expense);
     }
+
+    /** Paying a supplier bill. */
+    public function recordPayment(User $user, RestaurantExpense $expense): bool
+    {
+        return $this->allows($user, 'restaurant.supplier_payment.create', $expense);
+    }
+
+    public function reversePayment(User $user, RestaurantExpense $expense): bool
+    {
+        return $this->allows($user, 'restaurant.supplier_payment.reverse', $expense);
+    }
 }

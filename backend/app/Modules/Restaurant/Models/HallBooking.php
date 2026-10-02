@@ -14,13 +14,15 @@ use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Hall booking (branch = the hall's branch). Figures come from BookingFinancials.
+ * Hall booking (branch = the hall's branch): hall charge plus an optional event food package.
+ * Figures come from BookingFinancials.
  */
 #[Table('restaurant_hall_bookings')]
-#[Fillable(['booking_no', 'branch_id', 'hall_id', 'customer_id', 'booking_date', 'start_time', 'end_time', 'status', 'agreed_amount_minor', 'notes', 'created_by'])]
+#[Fillable(['booking_no', 'branch_id', 'hall_id', 'customer_id', 'booking_date', 'start_time', 'end_time', 'status', 'hall_charge_minor', 'agreed_amount_minor', 'notes', 'created_by'])]
 #[UsePolicy(HallBookingPolicy::class)]
 class HallBooking extends Model
 {
@@ -33,6 +35,8 @@ class HallBooking extends Model
         return [
             'booking_date' => 'date',
             'status' => BookingStatus::class,
+            'hall_charge_minor' => 'integer',
+            // Booking total = hall charge + food package total (what payments are measured against).
             'agreed_amount_minor' => 'integer',
             'paid_minor' => 'integer',
             'cancelled_at' => 'datetime',
@@ -42,6 +46,11 @@ class HallBooking extends Model
     public function hall(): BelongsTo
     {
         return $this->belongsTo(Hall::class);
+    }
+
+    public function foodPackage(): HasOne
+    {
+        return $this->hasOne(HallBookingFoodPackage::class, 'booking_id');
     }
 
     public function customer(): BelongsTo

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Restaurant;
 
+use App\Modules\Restaurant\Models\EventMenuItem;
 use App\Modules\Restaurant\Models\ExpenseCategory;
 use App\Modules\Restaurant\Models\FoodSale;
 use App\Modules\Restaurant\Models\Hall;
@@ -29,6 +30,8 @@ class RestaurantAuthorizationMatrixTest extends RestaurantTestCase
 
     private string $bookingPaymentId;
 
+    private string $expensePaymentId;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -48,15 +51,19 @@ class RestaurantAuthorizationMatrixTest extends RestaurantTestCase
             'hall_id' => $hall->id, 'customer_id' => $customer->id, 'booking_date' => now()->addDay()->toDateString(),
             'start_time' => '10:00', 'end_time' => '12:00', 'agreed_amount' => '1000', 'payment' => ['amount' => '100', 'method' => 'cash'],
         ])->assertCreated()->json('data.id');
+        // A supplier bill, partly paid (supplier dues).
+        $supplier = RestaurantSupplier::factory()->create();
         $expense = $this->actingAs($owner)->postJson('/api/v1/restaurant/expenses', [
             'branch_id' => $this->branchA->id, 'category_id' => $category->id, 'expense_date' => now()->toDateString(), 'amount' => '10',
+            'supplier_id' => $supplier->id, 'paid_amount' => '4', 'payment_method' => 'cash',
         ])->assertCreated()->json('data.id');
 
         $this->ids = [
             'customer' => $customer->id,
-            'supplier' => RestaurantSupplier::factory()->create()->id,
+            'supplier' => $supplier->id,
             'menuCategory' => $item->category_id,
             'menuItem' => $item->id,
+            'eventMenuItem' => EventMenuItem::factory()->create()->id,
             'sale' => $sale,
             'hall' => $hall->id,
             'booking' => $booking,
@@ -66,6 +73,7 @@ class RestaurantAuthorizationMatrixTest extends RestaurantTestCase
         ];
         $this->salePaymentId = FoodSale::find($sale)->payments()->sole()->id;
         $this->bookingPaymentId = HallBooking::find($booking)->payments()->sole()->id;
+        $this->expensePaymentId = RestaurantExpense::find($expense)->payments()->sole()->id;
         $this->assertSame(1, RestaurantExpense::count());
         $this->app['auth']->forgetGuards();
     }
@@ -81,7 +89,11 @@ class RestaurantAuthorizationMatrixTest extends RestaurantTestCase
             }
             $uri = preg_replace_callback('/\{(\w+)\}/', function ($m) use ($route) {
                 if ($m[1] === 'payment') {
-                    return str_contains($route->uri(), 'hall-bookings') ? $this->bookingPaymentId : $this->salePaymentId;
+                    return match (true) {
+                        str_contains($route->uri(), 'hall-bookings') => $this->bookingPaymentId,
+                        str_contains($route->uri(), 'expenses') => $this->expensePaymentId,
+                        default => $this->salePaymentId,
+                    };
                 }
 
                 return $this->ids[$m[1]] ?? $this->fail("No fixture for route parameter {$m[1]} in {$route->uri()}");

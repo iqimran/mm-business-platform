@@ -7,15 +7,19 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Restaurant\Models\Hall;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Restaurant\Models\HallBookingPayment;
+use App\Modules\Restaurant\Services\FoodPackages;
 use App\Modules\Restaurant\Services\HallAvailability;
 use App\Modules\Restaurant\Support\BookingOverlapGuard;
+use App\Modules\Restaurant\Support\FoodPackageFormulas;
 use App\Modules\Restaurant\Support\PaymentAudit;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use InvalidArgumentException;
 
 /**
- * Books a hall (and records an optional advance payment) in ONE transaction.
+ * Books a hall, with an optional event food package and an optional advance payment, in ONE transaction.
+ * Booking total = hall charge + food package total (guest count × price per head), calculated here.
  * The hall row is locked so bookings of the same hall are serialized; the exclusion constraint
  * remains the final guard against overlapping bookings.
  */
@@ -24,11 +28,13 @@ class CreateHallBooking
     public function __construct(
         private readonly AuditLogger $audit,
         private readonly HallAvailability $availability,
+        private readonly FoodPackages $packages,
     ) {}
 
     /**
      * @param  array{hall_id: string, customer_id: string, booking_date: string, start_time: string, end_time: string,
-     *               agreed_amount: string|int, notes?: string|null,
+     *               hall_charge: string|int, notes?: string|null,
+     *               food_package?: array{name: string, guest_count: int, price_per_head: string|int, event_menu_item_ids: list<string>, notes?: ?string}|null,
      *               payment?: array{amount: string|int, method: string, reference?: string|null}|null}  $data
      */
     public function handle(User $actor, array $data): HallBooking
@@ -45,13 +51,15 @@ class CreateHallBooking
                 throw ValidationException::withMessages(['start_time' => $this->availability->conflictMessage($conflicts)]);
             }
 
-            $agreed = Money::toMinor($data['agreed_amount']);
+            $hallCharge = Money::toMinor($data['hall_charge']);
+            $packageInput = $data['food_package'] ?? null;
+            $agreed = $this->bookingTotal($hallCharge, $packageInput);
             $payment = $data['payment'] ?? null;
             $paid = $payment ? Money::toMinor($payment['amount']) : 0;
 
             if ($paid > $agreed) {
                 throw ValidationException::withMessages([
-                    'payment.amount' => 'The payment exceeds the agreed amount of '.Money::toDecimal($agreed).'.',
+                    'payment.amount' => 'The payment exceeds the booking total of '.Money::toDecimal($agreed).'.',
                 ]);
             }
 
@@ -65,10 +73,15 @@ class CreateHallBooking
                 'booking_date' => $data['booking_date'],
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
+                'hall_charge_minor' => $hallCharge,
                 'agreed_amount_minor' => $agreed,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor->id,
             ]);
+
+            if ($packageInput) {
+                $this->packages->set($actor, $booking, $packageInput);
+            }
 
             $this->audit->record('restaurant.booking.created', 'restaurant_hall_booking', $booking->id, $actor->id, $booking->branch_id, newValues: [
                 'booking_no' => $booking->booking_no,
@@ -78,8 +91,18 @@ class CreateHallBooking
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
                 'status' => $booking->status->value,
+                'hall_charge' => Money::toDecimal($hallCharge),
+                'food_package_total' => $booking->foodPackage ? Money::toDecimal($booking->foodPackage->total_minor) : null,
+                'booking_total' => Money::toDecimal($agreed),
                 'agreed_amount' => Money::toDecimal($agreed),
             ]);
+
+            if ($booking->foodPackage) {
+                $this->audit->record('restaurant.booking.food_package_added', 'restaurant_hall_booking', $booking->id, $actor->id, $booking->branch_id, newValues: [
+                    'food_package' => FoodPackages::snapshot($booking->foodPackage),
+                    'booking_total' => Money::toDecimal($agreed),
+                ]);
+            }
 
             if ($payment) {
                 $record = HallBookingPayment::create([
@@ -103,5 +126,22 @@ class CreateHallBooking
 
             return $booking;
         }));
+    }
+
+    /** Hall charge + food package total; a booking must be worth something. */
+    private function bookingTotal(int $hallCharge, ?array $package): int
+    {
+        try {
+            $packageTotal = $package ? FoodPackageFormulas::packageTotal((int) $package['guest_count'], Money::toMinor($package['price_per_head'])) : null;
+            $total = FoodPackageFormulas::bookingTotal($hallCharge, $packageTotal);
+        } catch (InvalidArgumentException) {
+            throw ValidationException::withMessages(['food_package.guest_count' => 'The booking total is too large.']);
+        }
+
+        if ($total <= 0) {
+            throw ValidationException::withMessages(['hall_charge' => 'Enter a hall charge or add a food package.']);
+        }
+
+        return $total;
     }
 }

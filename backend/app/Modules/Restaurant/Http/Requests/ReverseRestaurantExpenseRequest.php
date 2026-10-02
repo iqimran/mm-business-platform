@@ -5,13 +5,13 @@ namespace App\Modules\Restaurant\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Reason is mandatory: reversals are part of the financial audit trail.
+ * Reversing an expense or one of its supplier payments: a reason is mandatory (audit trail).
  */
 class ReverseRestaurantExpenseRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('reverse', $this->route('expense'));
+        return $this->user()->can($this->route('payment') !== null ? 'reversePayment' : 'reverse', $this->route('expense'));
     }
 
     protected function prepareForValidation(): void

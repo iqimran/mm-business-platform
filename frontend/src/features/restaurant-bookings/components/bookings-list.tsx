@@ -69,7 +69,7 @@ export function BookingsList() {
       {bookings.data ? (
         <>
           <AmountSummary
-            total={bookings.data.summary.agreed_amount}
+            total={bookings.data.summary.booking_total}
             paid={bookings.data.summary.paid}
             due={bookings.data.summary.due}
             labels={[`Agreed (${bookings.data.summary.count} bookings)`, "Received", "Outstanding"]}
@@ -111,7 +111,10 @@ export function BookingsList() {
                       {b.branch ? <span className="text-muted-foreground"> · {b.branch.code}</span> : null}
                     </TableCell>
                     <TableCell className="hidden md:table-cell">{b.customer?.name ?? "—"}</TableCell>
-                    <TableCell className={`text-right tabular-nums ${b.status === "cancelled" ? "line-through" : ""}`}>{formatAmount(b.agreed_amount)}</TableCell>
+                    <TableCell className={`text-right tabular-nums whitespace-normal ${b.status === "cancelled" ? "line-through" : ""}`}>
+                      {formatAmount(b.booking_total)}
+                      {b.food_package ? <div className="text-xs text-muted-foreground">incl. food {formatAmount(b.food_package.total)}</div> : null}
+                    </TableCell>
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">{formatAmount(b.paid)}</TableCell>
                     <TableCell className="text-right tabular-nums">{b.status === "cancelled" ? "—" : formatAmount(b.due)}</TableCell>
                     <TableCell>

@@ -1,5 +1,6 @@
 <?php
 
+use App\Modules\Administration\Http\Controllers\AppInfoController;
 use App\Modules\Administration\Http\Controllers\BusinessProfileController;
 use App\Modules\Administration\Http\Controllers\PermissionController;
 use App\Modules\Administration\Http\Controllers\RoleController;
@@ -25,3 +26,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::put('settings/{key}', [SettingController::class, 'update'])->name('settings.update')
         ->where('key', '[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+');
 });
+
+// Public branding for the login page (display name only); rate limited.
+Route::get('app-info', AppInfoController::class)->middleware('throttle:60,1')->name('app-info');

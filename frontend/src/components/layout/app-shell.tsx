@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { navigation } from "@/config/navigation";
 import type { Session } from "@/features/auth/api";
 import { useLogout } from "@/features/auth/hooks";
+import { useAppName } from "@/features/branding/hooks";
 
 export function AppShell({ session, children }: { session: Session; children: ReactNode }) {
   const pathname = usePathname();
   const logout = useLogout();
+  const appName = useAppName();
   const granted = new Set(session.permissions);
   const sections = navigation
     .map((section) => ({ ...section, items: section.items.filter((item) => !item.permission || granted.has(item.permission)) }))
@@ -24,7 +26,9 @@ export function AppShell({ session, children }: { session: Session; children: Re
   return (
     <div className="flex min-h-svh w-full">
       <aside className="hidden w-60 shrink-0 flex-col border-r bg-muted/30 md:flex">
-        <div className="flex h-14 items-center border-b px-4 font-semibold">MM Business</div>
+        <div className="flex h-14 items-center border-b px-4 font-semibold leading-tight" title={appName}>
+          <span className="line-clamp-2">{appName}</span>
+        </div>
         <nav aria-label="Main" className="flex flex-1 flex-col gap-4 p-2">
           {sections.map((section, index) => (
             <div key={section.title ?? index} className="flex flex-col gap-1">

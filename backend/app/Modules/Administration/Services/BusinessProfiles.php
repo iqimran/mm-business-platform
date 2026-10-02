@@ -69,15 +69,8 @@ class BusinessProfiles
         ])->filter()->implode(' · ');
 
         return [
-            'name' => $profile['name'] ?? $this->applicationName(),
+            'name' => $profile['name'] ?? ApplicationName::get(),
             'lines' => array_values(array_filter([$profile['address'], $contact !== '' ? $contact : null])),
         ];
-    }
-
-    private function applicationName(): string
-    {
-        $name = Setting::where('key', 'app.name')->first()?->value;
-
-        return is_string($name) && $name !== '' ? $name : (string) config('app.name');
     }
 }

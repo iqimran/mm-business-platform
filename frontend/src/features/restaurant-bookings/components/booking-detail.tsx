@@ -14,6 +14,7 @@ import { AmountSummary } from "@/features/restaurant-common/components/amount-su
 import { errorMessage } from "@/lib/form-errors";
 import { printBookingPaymentReceipt, type HallBooking } from "../api";
 import { useCancelBooking, useCompleteBooking, useRecordBookingPayment, useReverseBookingPayment } from "../hooks";
+import { BookingCharges } from "./booking-charges";
 import { BookingForm } from "./booking-form";
 import { BookingPaymentBadge, BookingStatusBadge } from "./booking-status-badge";
 import { today } from "@/features/restaurant-common/dates";
@@ -103,6 +104,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
                   </div>
                 ))}
               </dl>
+              <BookingCharges booking={booking} />
               {booking.notes ? <p className="text-sm whitespace-pre-line text-muted-foreground">{booking.notes}</p> : null}
             </>
           )}
@@ -123,7 +125,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
           ) : null}
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <AmountSummary total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Booking amount", "Total paid", "Remaining due"]} />
+          <AmountSummary total={booking.agreed_amount} paid={booking.paid} due={booking.due} labels={["Booking total", "Total paid", "Remaining due"]} />
           <PaymentNote booking={booking} />
           {paying ? <PaymentForm due={booking.due} onSubmit={(input) => recordPayment.mutateAsync(input)} onDone={() => setPaying(false)} /> : null}
           <h3 className="text-sm font-medium">Payment history</h3>

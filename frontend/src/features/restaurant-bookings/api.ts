@@ -23,7 +23,11 @@ export type HallBooking = {
   start_time: string;
   end_time: string;
   status: BookingStatus;
-  /** Backend-computed figures (decimal strings). */
+  /** Backend-computed figures (decimal strings). Booking total = hall charge + food package. */
+  hall_charge: string;
+  food_package?: FoodPackage | null;
+  booking_total: string;
+  /** Former name of booking_total. */
   agreed_amount: string;
   paid: string;
   due: string;
@@ -47,7 +51,26 @@ export type BookingFilters = {
 };
 
 export type BookingsPage = Paginated<HallBooking> & {
-  summary: { count: number; agreed_amount: string; paid: string; due: string };
+  summary: { count: number; hall_charges: string; food_packages: string; food_package_count: number; booking_total: string; agreed_amount: string; paid: string; due: string };
+};
+
+/** Event food package: billable guests × price per head (totals are calculated by the server). */
+export type FoodPackage = {
+  id: string;
+  name: string;
+  guest_count: number;
+  price_per_head: string;
+  total: string;
+  notes: string | null;
+  items?: { event_menu_item_id: string; item_name: string }[] | null;
+};
+
+export type FoodPackageInput = {
+  name: string;
+  guest_count: number;
+  price_per_head: string;
+  event_menu_item_ids: string[];
+  notes: string | null;
 };
 
 export type BookingInput = {
@@ -56,7 +79,9 @@ export type BookingInput = {
   booking_date: string;
   start_time: string;
   end_time: string;
-  agreed_amount: string;
+  hall_charge: string;
+  /** null removes the package (edit) / no package (create). */
+  food_package: FoodPackageInput | null;
   notes: string | null;
   payment?: { amount: string; method: PaymentInput["method"]; reference: string | null } | null;
 };

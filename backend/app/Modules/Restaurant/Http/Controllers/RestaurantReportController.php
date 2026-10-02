@@ -112,12 +112,18 @@ class RestaurantReportController extends Controller
             $s = $summary[$key];
             $rows[] = ['area' => $area, 'figure' => $key === 'food_sales' ? 'Sales' : 'Bookings', 'count' => $s['count'], 'amount' => null];
             $rows[] = ['area' => $area, 'figure' => 'Revenue', 'count' => null, 'amount' => $s['revenue']];
+            if ($key === 'hall_bookings') {
+                $rows[] = ['area' => $area, 'figure' => '· Hall charges', 'count' => null, 'amount' => $s['hall_charges']];
+                $rows[] = ['area' => $area, 'figure' => '· Food packages', 'count' => $s['food_package_count'], 'amount' => $s['food_packages']];
+            }
             $rows[] = ['area' => $area, 'figure' => 'Received', 'count' => null, 'amount' => $s['received']];
             $rows[] = ['area' => $area, 'figure' => 'Outstanding due', 'count' => null, 'amount' => $s['outstanding_due']];
             $rows[] = ['area' => $area, 'figure' => 'Collected in period', 'count' => null, 'amount' => $s['collected_in_period']];
         }
         if ($summary['expenses'] !== null) {
             $rows[] = ['area' => 'Restaurant expenses', 'figure' => 'Total expenses', 'count' => $summary['expenses']['count'], 'amount' => $summary['expenses']['total']];
+            $rows[] = ['area' => 'Restaurant expenses', 'figure' => '· Paid to suppliers / in cash', 'count' => null, 'amount' => $summary['expenses']['paid']];
+            $rows[] = ['area' => 'Restaurant expenses', 'figure' => '· Supplier dues', 'count' => null, 'amount' => $summary['expenses']['supplier_due']];
         }
 
         return ['items' => $rows];

@@ -100,7 +100,7 @@ class PaymentSlip
 
         return Pdf::loadView('slips.payment-slip', $data)
             ->setOption('isFontSubsettingEnabled', true)
-            ->setPaper('a5', 'portrait')
+            ->setPaper('a4', 'portrait')
             ->stream($data['number'].'.pdf');
     }
 

@@ -4,6 +4,7 @@ namespace App\Modules\Restaurant\Http\Requests;
 
 use App\Modules\Branch\Models\Branch;
 use App\Modules\Restaurant\Enums\PaymentMethod;
+use App\Modules\Restaurant\Http\Requests\Concerns\ValidatesFoodPackage;
 use App\Modules\Restaurant\Models\Hall;
 use App\Modules\Restaurant\Models\HallBooking;
 use App\Modules\Shared\Rules\MoneyAmount;
@@ -17,6 +18,8 @@ use Illuminate\Validation\Validator;
  */
 class StoreHallBookingRequest extends FormRequest
 {
+    use ValidatesFoodPackage;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', HallBooking::class);
@@ -24,6 +27,7 @@ class StoreHallBookingRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        $this->normalizeBookingAmounts();
         if (is_string($this->input('notes'))) {
             $this->merge(['notes' => trim($this->input('notes')) ?: null]);
         }
@@ -37,12 +41,13 @@ class StoreHallBookingRequest extends FormRequest
             'booking_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:today', 'before_or_equal:'.now()->addYears(5)->toDateString()],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
-            'agreed_amount' => ['required', new MoneyAmount],
+            'hall_charge' => ['required', new MoneyAmount(allowZero: true)],
             'notes' => ['sometimes', 'nullable', 'string', 'max:5000'],
             'payment' => ['sometimes', 'nullable', 'array'],
             'payment.amount' => ['required_with:payment', new MoneyAmount],
             'payment.method' => ['required_with:payment', Rule::enum(PaymentMethod::class)],
             'payment.reference' => ['sometimes', 'nullable', 'string', 'max:100'],
+            ...$this->foodPackageRules(),
         ];
     }
 
@@ -68,6 +73,7 @@ class StoreHallBookingRequest extends FormRequest
             'customer_id.exists' => 'Select an active customer.',
             'booking_date.after_or_equal' => 'The booking date cannot be in the past.',
             'end_time.after' => 'The end time must be after the start time.',
+            ...$this->foodPackageMessages(),
         ];
     }
 }

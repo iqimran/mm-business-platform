@@ -4,6 +4,7 @@ namespace Tests\Feature\Restaurant;
 
 use App\Modules\Audit\Models\AuditLog;
 use App\Modules\Identity\Models\User;
+use App\Modules\Restaurant\Models\EventMenuItem;
 use App\Modules\Restaurant\Models\FoodSale;
 use App\Modules\Restaurant\Models\FoodSalePayment;
 use App\Modules\Restaurant\Models\Hall;
@@ -12,6 +13,7 @@ use App\Modules\Restaurant\Models\HallBookingPayment;
 use App\Modules\Restaurant\Models\MenuItem;
 use App\Modules\Restaurant\Models\RestaurantCustomer;
 use App\Modules\Restaurant\Services\PaymentReceipt;
+use Illuminate\Support\Facades\View;
 
 class PaymentReceiptTest extends RestaurantTestCase
 {
@@ -133,6 +135,80 @@ class PaymentReceiptTest extends RestaurantTestCase
         $this->assertSame($this->branchA->id, $logs[0]->branch_id);
         $this->assertStringStartsWith('FR-', $logs[0]->new_values['document']);
         $this->assertStringStartsWith('BR-', $logs[1]->new_values['document']);
+    }
+
+    public function test_food_sale_receipt_is_a_single_80mm_pos_page_and_booking_receipt_is_a4(): void
+    {
+        // Many lines with long names: still one continuous page, sized to the content.
+        $long = MenuItem::factory()->create(['name' => 'Special Mutton Tehari with extra roast and salad platter', 'price_minor' => 125000]);
+        $items = [['menu_item_id' => $long->id, 'quantity' => 2]];
+        foreach (MenuItem::factory()->count(14)->create(['price_minor' => 1000]) as $item) {
+            $items[] = ['menu_item_id' => $item->id, 'quantity' => 1];
+        }
+        $saleId = $this->actingAs($this->cashier)->postJson('/api/v1/restaurant/sales', [
+            'branch_id' => $this->branchA->id, 'customer_id' => $this->sale->customer_id, 'items' => $items,
+            'payment' => ['amount' => '100', 'method' => 'cash'],
+        ])->assertCreated()->json('data.id');
+        $payment = FoodSale::find($saleId)->payments()->sole();
+
+        $pos = $this->actingAs($this->cashier)->get("/api/v1/restaurant/sales/{$saleId}/payments/{$payment->id}/receipt")
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->getContent();
+        $this->assertSame(1, preg_match_all('#/Type /Page(?!s)#', $pos), 'The POS receipt must be exactly one page.');
+        preg_match('#/MediaBox \[0\.000 0\.000 ([\d.]+) ([\d.]+)\]#', $pos, $box);
+        $boxes = [1 => [$box[1]], 2 => [$box[2]]];
+        $this->assertSame('226.770', $boxes[1][0]); // 80 mm roll
+        $this->assertGreaterThan(600, (float) $boxes[2][0]); // grows with the content
+
+        $short = app(PaymentReceipt::class)->posHeight(app(PaymentReceipt::class)->saleReceiptData($this->sale, $this->sale->payments()->sole()));
+        $this->assertLessThan((float) $boxes[2][0], $short);
+
+        $booking = $this->actingAs($this->cashier)
+            ->get("/api/v1/restaurant/hall-bookings/{$this->booking->id}/payments/{$this->booking->payments()->sole()->id}/receipt")->getContent();
+        $this->assertStringContainsString('/MediaBox [0.000 0.000 595.280 841.890]', $booking); // A4
+    }
+
+    public function test_long_booking_receipt_shrinks_to_fit_one_a4_page(): void
+    {
+        $scales = [];
+        View::creator('restaurant.payment-receipt', function ($view) use (&$scales) {
+            $scales[] = $view->getData()['scale'] ?? null;
+        });
+
+        // A normal receipt prints at full size on one page.
+        $payment = $this->booking->payments()->sole();
+        $normal = $this->actingAs($this->cashier)->get("/api/v1/restaurant/hall-bookings/{$this->booking->id}/payments/{$payment->id}/receipt")->getContent();
+        $this->assertSame(1, preg_match_all('#/Type /Page(?!s)#', $normal));
+        $this->assertSame([1.0], $scales);
+
+        // A long package (many dishes, long notes) would need a second page at full size: it is scaled down instead.
+        $items = EventMenuItem::factory()->count(80)
+            ->sequence(fn ($s) => ['name' => "Event dish {$s->index} special"])->create();
+        $hall = Hall::factory()->create(['branch_id' => $this->branchA->id]);
+        $bookingId = $this->actingAs($this->cashier)->postJson('/api/v1/restaurant/hall-bookings', [
+            'hall_id' => $hall->id, 'customer_id' => $this->sale->customer_id, 'booking_date' => now()->addDays(9)->toDateString(),
+            'start_time' => '18:00', 'end_time' => '22:00', 'hall_charge' => '50000',
+            'food_package' => [
+                'name' => 'Grand Reception Package', 'guest_count' => 500, 'price_per_head' => '1200',
+                'event_menu_item_ids' => $items->pluck('id')->all(), 'notes' => str_repeat('Serve the main course at 8:30 pm sharp. ', 12),
+            ],
+            'payment' => ['amount' => '100000', 'method' => 'cash'],
+        ])->assertCreated()->json('data.id');
+        $longPayment = HallBooking::find($bookingId)->payments()->sole();
+
+        $scales = [];
+        $long = $this->actingAs($this->cashier)->get("/api/v1/restaurant/hall-bookings/{$bookingId}/payments/{$longPayment->id}/receipt")
+            ->assertOk()->assertHeader('Content-Type', 'application/pdf')->getContent();
+        $this->assertSame(1, preg_match_all('#/Type /Page(?!s)#', $long), 'The receipt must stay on one page.');
+        $this->assertStringContainsString('/MediaBox [0.000 0.000 595.280 841.890]', $long); // still A4
+        $this->assertGreaterThan(1, count($scales), 'Full size did not fit, so smaller sizes were tried.');
+        $this->assertLessThan(1.0, end($scales));
+        $this->assertGreaterThanOrEqual(min(PaymentReceipt::PAGE_SCALES), end($scales));
+
+        // Extreme content that cannot fit even at the smallest size still prints (on a second page).
+        $data = app(PaymentReceipt::class)->bookingReceiptData(HallBooking::find($bookingId), $longPayment);
+        $data['package_items'] = array_fill(0, 300, 'A very long event dish name repeated many times');
+        $pdf = app(PaymentReceipt::class)->fittedPage($data);
+        $this->assertGreaterThan(1, $pdf->getDomPDF()->getCanvas()->get_page_count());
     }
 
     public function test_reversed_payment_still_prints(): void

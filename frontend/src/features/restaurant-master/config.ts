@@ -18,7 +18,7 @@ export type MasterField = {
 
 export type MasterResource = {
   /** API path under /api/v1. */
-  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items" | "restaurant/halls" | "restaurant/expense-categories";
+  path: "restaurant/customers" | "restaurant/suppliers" | "restaurant/menu-categories" | "restaurant/menu-items" | "restaurant/halls" | "restaurant/expense-categories" | "restaurant/event-menu-items";
   title: string;
   singular: string;
   description: string;
@@ -116,6 +116,19 @@ export const expenseCategoryResource: MasterResource = {
   deletable: true,
   fields: [
     { name: "name", label: "Name", type: "text", required: true, max: 100, column: true },
+    { name: "description", label: "Description", type: "text", max: 255, column: true },
+  ],
+};
+
+export const eventMenuItemResource: MasterResource = {
+  path: "restaurant/event-menu-items",
+  title: "Event menu items",
+  singular: "event menu item",
+  description: "Dishes offered in hall booking food packages (e.g. Polao, Roast). No item prices: packages are priced per head.",
+  permission: "restaurant.event_menu",
+  deletable: true,
+  fields: [
+    { name: "name", label: "Name", type: "text", required: true, max: 150, column: true },
     { name: "description", label: "Description", type: "text", max: 255, column: true },
   ],
 };

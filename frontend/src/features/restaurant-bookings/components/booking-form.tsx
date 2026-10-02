@@ -15,17 +15,19 @@ import { Textarea } from "@/components/ui/textarea";
 import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
 import { toDecimal, toMinor } from "@/features/restaurant-common/money";
 import { ApiError } from "@/lib/api-client";
+import { usePermissions } from "@/features/auth/hooks";
 import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { HallBooking } from "../api";
 import { useCreateBooking, useHallOptions, useUpdateBooking } from "../hooks";
-import { bookingErrorFields, bookingSchema, toBookingChanges, toBookingInput, type BookingValues } from "../schemas";
+import { bookingErrorFields, bookingPreview, bookingSchema, toBookingChanges, toBookingInput, type BookingValues } from "../schemas";
 import { AvailabilityPanel } from "./availability-panel";
+import { FoodPackageFields } from "./food-package-fields";
 import { today } from "@/features/restaurant-common/dates";
 import { searchCustomers } from "@/features/restaurant-common/lookups";
 import { paymentMethodLabels, paymentMethods } from "@/features/restaurant-common/payments";
 
-/** New booking (with optional advance payment) or changes to a confirmed booking. */
+/** New booking (hall charge, optional event food package, optional advance payment) or changes to a confirmed booking. */
 export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone?: () => void }) {
   const router = useRouter();
   const mode = booking ? "edit" : "create";
@@ -33,6 +35,7 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
   const create = useCreateBooking();
   const update = useUpdateBooking(booking?.id ?? "");
   const notify = useNotify();
+  const { can } = usePermissions();
   const schema = useMemo(() => bookingSchema(mode, booking?.booking_date), [mode, booking?.booking_date]);
 
   const {
@@ -50,7 +53,13 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
       booking_date: booking?.booking_date ?? "",
       start_time: booking?.start_time ?? "",
       end_time: booking?.end_time ?? "",
-      agreed_amount: booking?.agreed_amount ?? "",
+      hall_charge: booking?.hall_charge ?? "",
+      has_package: Boolean(booking?.food_package),
+      package_name: booking?.food_package?.name ?? "",
+      package_guests: booking?.food_package ? String(booking.food_package.guest_count) : "",
+      package_price: booking?.food_package?.price_per_head ?? "",
+      package_items: (booking?.food_package?.items ?? []).map((item) => ({ id: item.event_menu_item_id, label: item.item_name })),
+      package_notes: booking?.food_package?.notes ?? "",
       payment_amount: "",
       payment_method: "cash",
       payment_reference: "",
@@ -58,16 +67,20 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
     },
   });
 
-  const [hallId, date, start, end, agreedAmount, paymentAmount] = useWatch({
+  const [hallId, date, start, end, hallCharge, hasPackage, guests, price, paymentAmount] = useWatch({
     control,
-    name: ["hall_id", "booking_date", "start_time", "end_time", "agreed_amount", "payment_amount"],
+    name: ["hall_id", "booking_date", "start_time", "end_time", "hall_charge", "has_package", "package_guests", "package_price", "payment_amount"],
   });
-  const agreed = toMinor(agreedAmount) ?? 0;
+  // Preview only: the server recalculates package and booking totals.
+  const preview = bookingPreview({ hall_charge: hallCharge, has_package: hasPackage, package_guests: guests, package_price: price });
+  const agreed = preview.total;
   const paying = Math.min(toMinor(paymentAmount || "0") ?? 0, agreed);
+  const alreadyPaid = toMinor(booking?.paid ?? "0") ?? 0;
 
   // Editing keeps the hall's branch; moving to another branch is not allowed.
   const hallOptions = (halls.data ?? []).filter((h) => !booking?.branch || h.branch_id === booking.branch.id);
   const currentHallMissing = booking?.hall && !hallOptions.some((h) => h.id === booking.hall?.id);
+  const selectedHall = hallOptions.find((h) => h.id === hallId) ?? (booking?.hall?.id === hallId ? booking.hall : undefined);
 
   const submit = handleSubmit(async (v) => {
     try {
@@ -154,12 +167,53 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
 
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="booking-amount">Agreed amount</Label>
-          <Input id="booking-amount" inputMode="decimal" placeholder="0.00" aria-invalid={errors.agreed_amount ? true : undefined} {...register("agreed_amount")} />
-          {booking ? <p className="text-xs text-muted-foreground">Cannot be less than the amount already paid ({formatAmount(booking.paid)}).</p> : null}
-          <FieldError id="booking-amount-error" message={errors.agreed_amount?.message} />
+          <Label htmlFor="booking-amount">Hall charge</Label>
+          <Input id="booking-amount" inputMode="decimal" placeholder="0.00" aria-invalid={errors.hall_charge ? true : undefined} {...register("hall_charge")} />
+          <p className="text-xs text-muted-foreground">Enter 0 if only the food package is charged.</p>
+          <FieldError id="booking-amount-error" message={errors.hall_charge?.message} />
         </div>
       </div>
+
+      <FoodPackageFields
+        control={control}
+        register={register}
+        errors={errors}
+        hallCapacity={selectedHall?.capacity ?? null}
+        canSearchMenu={can("restaurant.event_menu.view")}
+      />
+
+      <dl className="grid gap-1 rounded-lg border bg-muted/30 p-3 text-sm" aria-label="Booking summary">
+        {(
+          [
+            ["Hall charge", preview.hall],
+            ["Food package", preview.pkg],
+          ] as [string, number][]
+        ).map(([label, minor]) => (
+          <div key={label} className="flex justify-between gap-4">
+            <dt className="text-muted-foreground">{label}</dt>
+            <dd className="tabular-nums">{formatAmount(toDecimal(minor))}</dd>
+          </div>
+        ))}
+        <div className="flex justify-between gap-4 border-t pt-1 font-semibold">
+          <dt>Booking total</dt>
+          <dd className="tabular-nums">{formatAmount(toDecimal(preview.total))}</dd>
+        </div>
+        {booking ? (
+          <>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Paid</dt>
+              <dd className="tabular-nums">{formatAmount(booking.paid)}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted-foreground">Due after saving</dt>
+              <dd className={`tabular-nums ${preview.total < alreadyPaid ? "text-destructive" : ""}`}>{formatAmount(toDecimal(preview.total - alreadyPaid))}</dd>
+            </div>
+          </>
+        ) : null}
+        <p className="pt-1 text-xs text-muted-foreground">
+          Preview only. The server calculates the final figures{booking ? "; the total cannot be less than what was already paid" : ""}.
+        </p>
+      </dl>
 
       {booking ? null : (
         <fieldset className="flex flex-col gap-4 rounded-lg border p-4">
@@ -194,7 +248,7 @@ export function BookingForm({ booking, onDone }: { booking?: HallBooking; onDone
               <FieldError id="booking-pay-reference-error" message={errors.payment_reference?.message} />
             </div>
           </div>
-          <AmountSummary total={toDecimal(agreed)} paid={toDecimal(paying)} due={toDecimal(agreed - paying)} labels={["Agreed", "Paying now", "Due after booking"]} />
+          <AmountSummary total={toDecimal(agreed)} paid={toDecimal(paying)} due={toDecimal(agreed - paying)} labels={["Booking total", "Paying now", "Due after booking"]} />
           <p className="text-xs text-muted-foreground">Preview only. The server calculates the final figures.</p>
         </fieldset>
       )}

@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
+import { useAppName } from "@/features/branding/hooks";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { useLogin } from "../hooks";
 import { loginSchema, type LoginValues } from "../schemas";
 
 export function LoginForm() {
+  const appName = useAppName();
   const loginMutation = useLogin();
   const {
     register,
@@ -46,6 +48,7 @@ export function LoginForm() {
   return (
     <Card className="w-full max-w-sm">
       <CardHeader>
+        <p className="text-lg font-semibold tracking-tight">{appName}</p>
         <CardTitle className="text-xl">Sign in</CardTitle>
         <CardDescription>Use your business platform account.</CardDescription>
       </CardHeader>

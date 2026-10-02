@@ -14,6 +14,7 @@ import { searchSuppliers } from "@/features/restaurant-common/lookups";
 import { applyApiErrors } from "@/lib/form-errors";
 import { useCreateExpense, useExpenseCategories } from "../hooks";
 import { expenseSchema, toExpenseInput, type ExpenseValues } from "../schemas";
+import { SupplierPaymentFields } from "./supplier-payment-fields";
 import { today } from "@/features/restaurant-common/dates";
 
 export function ExpenseForm({ onDone }: { onDone: () => void }) {
@@ -30,6 +31,7 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ExpenseValues>({
     resolver: zodResolver(expenseSchema),
@@ -41,6 +43,9 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
       amount: "",
       description: "",
       reference: "",
+      paid_amount: "",
+      payment_method: "cash",
+      payment_reference: "",
     },
   });
 
@@ -50,7 +55,7 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
       notify("Expense recorded.");
       onDone();
     } catch (e) {
-      applyApiErrors(e, setError, ["branch_id", "category_id", "expense_date", "amount", "description", "reference"], { supplier_id: "supplier" });
+      applyApiErrors(e, setError, ["branch_id", "category_id", "expense_date", "amount", "description", "reference", "paid_amount", "payment_method", "payment_reference"], { supplier_id: "supplier" });
     }
   });
 
@@ -127,6 +132,7 @@ export function ExpenseForm({ onDone }: { onDone: () => void }) {
           <Input id="expense-description" aria-invalid={errors.description ? true : undefined} {...register("description")} />
           <FieldError id="expense-description-error" message={errors.description?.message} />
         </div>
+        <SupplierPaymentFields control={control} register={register} setValue={setValue} errors={errors} />
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onDone}>

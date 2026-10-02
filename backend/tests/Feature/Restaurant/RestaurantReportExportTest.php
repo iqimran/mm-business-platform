@@ -124,7 +124,10 @@ class RestaurantReportExportTest extends RestaurantTestCase
         $this->assertEquals(['Food Purchase', 1, 1234.5], $categories['body'][0]);
 
         $bookings = $this->table($this->sheetRows($this->actingAs($this->reporter)->get(self::EXPORT.'/bookings/export?format=xlsx')), 'Booking no.');
-        $this->assertEquals(['Grand', 'Karim', 'confirmed', 1000.0, 400.0, 600.0, 'partial'], array_slice($bookings['body'][0], 4, 7));
+        // Hall charge 1000, no food package, booking total 1000.
+        $this->assertEquals(['Grand', 'Karim', 'confirmed', 1000.0], array_slice($bookings['body'][0], 4, 4));
+        $this->assertEmpty($bookings['body'][0][8]);
+        $this->assertEquals([1000.0, 400.0, 600.0, 'partial'], array_slice($bookings['body'][0], 9, 4));
         $this->assertSame('Total', $bookings['body'][1][0]);
     }
 

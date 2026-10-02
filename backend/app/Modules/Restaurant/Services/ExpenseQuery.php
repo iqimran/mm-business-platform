@@ -16,7 +16,7 @@ class ExpenseQuery
 {
     /**
      * @param  array{branch_id?: string, category_id?: string, supplier_id?: string, date?: string,
-     *               date_from?: string, date_to?: string, state?: string, search?: string}  $filters
+     *               date_from?: string, date_to?: string, state?: string, search?: string, payment_status?: string}  $filters
      */
     public function filtered(User $user, array $filters): Builder
     {
@@ -32,20 +32,36 @@ class ExpenseQuery
             ->when(($filters['state'] ?? null) === 'reversed', fn ($q) => $q->whereNotNull('restaurant_expenses.reversed_at'))
             ->when($filters['search'] ?? null, fn ($q, $term) => $q->where(fn ($q) => $q
                 ->where('restaurant_expenses.description', 'ilike', "%{$term}%")
-                ->orWhere('restaurant_expenses.reference', 'ilike', "%{$term}%")));
+                ->orWhere('restaurant_expenses.reference', 'ilike', "%{$term}%")))
+            // Supplier dues: unpaid / partially paid / paid (active expenses only).
+            ->when($filters['payment_status'] ?? null, function ($q, $status) {
+                $paid = RestaurantExpense::paidSql();
+                $q->whereNull('restaurant_expenses.reversed_at')->whereRaw(match ($status) {
+                    'unpaid' => "{$paid} = 0",
+                    'partial' => "{$paid} > 0 AND {$paid} < restaurant_expenses.amount_minor",
+                    'due' => "{$paid} < restaurant_expenses.amount_minor",
+                    default => "{$paid} >= restaurant_expenses.amount_minor",
+                });
+            });
     }
 
     /**
-     * @return array{count: int, total: string}
+     * @return array{count: int, total: string, paid: string, supplier_due: string}
      */
     public function totals(Builder $filtered): array
     {
         $row = $filtered->clone()->toBase()
             ->whereNull('restaurant_expenses.reversed_at')
-            ->selectRaw('count(*) AS expenses, coalesce(sum(restaurant_expenses.amount_minor), 0) AS total')
+            ->selectRaw('count(*) AS expenses, coalesce(sum(restaurant_expenses.amount_minor), 0) AS total, coalesce(sum('.RestaurantExpense::paidSql().'), 0) AS paid')
             ->first();
 
-        return ['count' => (int) $row->expenses, 'total' => Money::toDecimal((int) $row->total)];
+        return [
+            'count' => (int) $row->expenses,
+            'total' => Money::toDecimal((int) $row->total),
+            'paid' => Money::toDecimal((int) $row->paid),
+            // Owed to suppliers for these expenses.
+            'supplier_due' => Money::toDecimal((int) $row->total - (int) $row->paid),
+        ];
     }
 
     /**

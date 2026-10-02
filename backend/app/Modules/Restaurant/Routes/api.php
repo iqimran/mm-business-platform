@@ -1,6 +1,7 @@
 <?php
 
 use App\Modules\Restaurant\Http\Controllers\CustomerController;
+use App\Modules\Restaurant\Http\Controllers\EventMenuItemController;
 use App\Modules\Restaurant\Http\Controllers\ExpenseCategoryController;
 use App\Modules\Restaurant\Http\Controllers\FoodSaleController;
 use App\Modules\Restaurant\Http\Controllers\HallBookingController;
@@ -11,6 +12,7 @@ use App\Modules\Restaurant\Http\Controllers\PaymentReceiptController;
 use App\Modules\Restaurant\Http\Controllers\RestaurantExpenseController;
 use App\Modules\Restaurant\Http\Controllers\RestaurantReportController;
 use App\Modules\Restaurant\Http\Controllers\SupplierController;
+use App\Modules\Restaurant\Http\Controllers\SupplierDueController;
 use Illuminate\Support\Facades\Route;
 
 // Mounted under /api/v1. Restaurant module: isolated from Car; permission gates per entity.
@@ -20,6 +22,8 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
     Route::apiResource('suppliers', SupplierController::class)->except('destroy');
     Route::apiResource('menu-categories', MenuCategoryController::class)->parameters(['menu-categories' => 'menuCategory']);
     Route::apiResource('menu-items', MenuItemController::class)->parameters(['menu-items' => 'menuItem']);
+    // Items for hall booking food packages (no prices; packages are priced per head).
+    Route::apiResource('event-menu-items', EventMenuItemController::class)->parameters(['event-menu-items' => 'eventMenuItem']);
 
     // Food sales (branch-scoped). Immutable: corrections via reversal.
     Route::get('sales', [FoodSaleController::class, 'index'])->name('sales.index');
@@ -54,6 +58,13 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
     Route::post('expenses', [RestaurantExpenseController::class, 'store'])->name('expenses.store');
     Route::get('expenses/{expense}', [RestaurantExpenseController::class, 'show'])->name('expenses.show');
     Route::post('expenses/{expense}/reverse', [RestaurantExpenseController::class, 'reverse'])->name('expenses.reverse');
+    // Supplier dues: pay a supplier bill (expense) / reverse a payment / print the voucher.
+    Route::get('supplier-dues', [SupplierDueController::class, 'index'])->name('supplier-dues.index');
+    Route::scopeBindings()->group(function () {
+        Route::post('expenses/{expense}/payments', [RestaurantExpenseController::class, 'storePayment'])->name('expenses.payments.store');
+        Route::post('expenses/{expense}/payments/{payment}/reverse', [RestaurantExpenseController::class, 'reversePayment'])->name('expenses.payments.reverse');
+        Route::get('expenses/{expense}/payments/{payment}/voucher', [PaymentReceiptController::class, 'expensePayment'])->name('expenses.payments.voucher');
+    });
 
     // Reports (read-only; server-side filters, sorting, pagination and totals).
     Route::get('reports/summary', [RestaurantReportController::class, 'summary'])->name('reports.summary');

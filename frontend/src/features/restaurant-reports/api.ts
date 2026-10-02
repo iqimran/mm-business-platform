@@ -43,22 +43,30 @@ export type BookingRow = {
   branch: { code: string; name: string };
   hall: string;
   customer: string;
+  hall_charge: string;
+  food_package: string | null;
+  food_package_name: string | null;
+  food_package_guests: number | null;
+  booking_total: string;
   agreed_amount: string;
   paid: string;
   due: string;
   payment_status: PaymentStatus | null;
 };
-export type BookingTotals = { count: number; agreed_amount: string; paid: string; due: string; cancelled_count: number };
+export type BookingTotals = { count: number; hall_charges: string; food_packages: string; booking_total: string; agreed_amount: string; paid: string; due: string; cancelled_count: number };
 
 export type CategoryRow = { category_id: string; category: string; count: number; total: string };
-export type ExpenseTotals = { count: number; total: string };
+/** Expenses are full bills; paid/supplier_due show what is still owed to suppliers. */
+export type ExpenseTotals = { count: number; total: string; paid: string; supplier_due: string };
 
 export type StreamSummary = { count: number; revenue: string; received: string; outstanding_due: string; collected_in_period: string };
+/** Hall booking revenue is split into hall charges and event food packages (separate from food sales). */
+export type BookingStreamSummary = StreamSummary & { hall_charges: string; food_packages: string; food_package_count: number };
 export type FinancialSummary = {
   period: { date_from: string; date_to: string };
   branch_id: string | null;
   food_sales: StreamSummary | null;
-  hall_bookings: StreamSummary | null;
+  hall_bookings: BookingStreamSummary | null;
   expenses: ExpenseTotals | null;
 };
 

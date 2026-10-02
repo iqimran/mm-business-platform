@@ -95,18 +95,3 @@ export function reversePayment(saleId: string, paymentId: string, reason: string
 export function printSalePaymentReceipt(saleId: string, paymentId: string) {
   return apiOpenPdf(`/restaurant/sales/${encodeURIComponent(saleId)}/payments/${encodeURIComponent(paymentId)}/receipt`);
 }
-
-export type MenuOption = { id: string; label: string; hint?: string; price: string };
-
-/** Server-side search of available menu items (a few matches, never the whole menu). */
-export async function searchMenu(term: string): Promise<MenuOption[]> {
-  const params = new URLSearchParams({ is_active: "1", per_page: "10" });
-  if (term) params.set("search", term);
-  const page = await apiRequest<Paginated<{ id: string; name: string; price: string; category?: { name: string; is_active: boolean } }>>(
-    `/restaurant/menu-items?${params}`,
-  );
-
-  return page.items
-    .filter((item) => item.category?.is_active !== false)
-    .map((item) => ({ id: item.id, label: item.name, price: item.price, hint: `${item.category?.name ?? ""} · ${item.price}` }));
-}

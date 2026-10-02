@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, Building2, CalendarDays, Car, ChefHat, Contact, DatabaseBackup, FileClock, FolderTree, LayoutDashboard, PieChart, Receipt, Settings, ShieldCheck, ShoppingBag, Tags, Truck, UserCog, Users, Wallet, Warehouse, type LucideIcon } from "lucide-react";
+import { BarChart3, BookOpen, Building2, CalendarDays, Car, ChefHat, Contact, DatabaseBackup, FileClock, FolderTree, HandCoins, LayoutDashboard, PieChart, Receipt, Settings, ShieldCheck, ShoppingBag, Tags, Truck, UserCog, Users, UtensilsCrossed, Wallet, Warehouse, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -34,9 +34,11 @@ export const navigation: NavSection[] = [
       { href: "/restaurant/sales", label: "Food sales", icon: ShoppingBag, permission: "restaurant.sale.view" },
       { href: "/restaurant/bookings", label: "Hall bookings", icon: CalendarDays, permission: "restaurant.booking.view" },
       { href: "/restaurant/expenses", label: "Expenses", icon: Wallet, permission: "restaurant.expense.view" },
+      { href: "/restaurant/supplier-dues", label: "Supplier dues", icon: HandCoins, permission: "restaurant.expense.view" },
       { href: "/restaurant/reports", label: "Reports", icon: PieChart, permission: "restaurant.report.view" },
       { href: "/restaurant/menu", label: "Food menu", icon: ChefHat, permission: "restaurant.menu.view" },
       { href: "/restaurant/menu-categories", label: "Menu categories", icon: Tags, permission: "restaurant.menu_category.view" },
+      { href: "/restaurant/event-menu-items", label: "Event menu items", icon: UtensilsCrossed, permission: "restaurant.event_menu.view" },
       { href: "/restaurant/customers", label: "Customers", icon: Contact, permission: "restaurant.customer.view" },
       { href: "/restaurant/suppliers", label: "Suppliers", icon: BookOpen, permission: "restaurant.supplier.view" },
       { href: "/restaurant/halls", label: "Halls", icon: Warehouse, permission: "restaurant.hall.view" },

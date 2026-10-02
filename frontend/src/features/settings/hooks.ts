@@ -1,5 +1,6 @@
 "use client";
 
+import { appInfoQueryKey } from "@/features/branding/hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { fetchBusinessProfiles, fetchSettings, saveBusinessProfile, saveSetting, type BusinessModule, type BusinessProfileInput, type SettingInput } from "./api";
 
@@ -14,7 +15,11 @@ export function useSaveSetting() {
 
   return useMutation({
     mutationFn: ({ key, input }: { key: string; input: SettingInput }) => saveSetting(key, input),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: settingsKey }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: settingsKey });
+      // The application name is shown in the sidebar, login page and tab title.
+      queryClient.invalidateQueries({ queryKey: appInfoQueryKey });
+    },
   });
 }
 

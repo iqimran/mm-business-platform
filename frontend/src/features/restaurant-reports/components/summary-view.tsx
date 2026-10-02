@@ -21,7 +21,7 @@ function Figures({ rows }: { rows: [string, string | number][] }) {
   );
 }
 
-function Stream({ title, data, countLabel }: { title: string; data: StreamSummary; countLabel: string }) {
+function Stream({ title, data, countLabel, split = [] }: { title: string; data: StreamSummary; countLabel: string; split?: [string, string][] }) {
   return (
     <Card>
       <CardHeader>
@@ -32,6 +32,7 @@ function Stream({ title, data, countLabel }: { title: string; data: StreamSummar
           rows={[
             [countLabel, data.count],
             ["Revenue", data.revenue],
+            ...split,
             ["Received", data.received],
             ["Outstanding due", data.outstanding_due],
             ["Collected in period", data.collected_in_period],
@@ -63,20 +64,31 @@ export function SummaryView({ period }: { period: Period }) {
       {nothing ? <p className="text-sm text-muted-foreground">You do not have access to any restaurant figures.</p> : null}
       <div className="grid gap-4 md:grid-cols-3">
         {data.food_sales ? <Stream title="Food sales" data={data.food_sales} countLabel="Sales" /> : null}
-        {data.hall_bookings ? <Stream title="Hall bookings" data={data.hall_bookings} countLabel="Bookings" /> : null}
+        {data.hall_bookings ? (
+          <Stream
+            title="Hall bookings"
+            data={data.hall_bookings}
+            countLabel="Bookings"
+            split={[
+              ["· Hall charges", data.hall_bookings.hall_charges],
+              [`· Food packages (${data.hall_bookings.food_package_count})`, data.hall_bookings.food_packages],
+            ]}
+          />
+        ) : null}
         {data.expenses ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Restaurant expenses</CardTitle>
             </CardHeader>
             <CardContent>
-              <Figures rows={[["Expenses", data.expenses.count], ["Total", data.expenses.total]]} />
+              <Figures rows={[["Expenses", data.expenses.count], ["Total", data.expenses.total], ["Paid", data.expenses.paid], ["Supplier dues", data.expenses.supplier_due]]} />
             </CardContent>
           </Card>
         ) : null}
       </div>
       <p className="text-xs text-muted-foreground">
-        Revenue: active sales by sale date and non-cancelled bookings by event date in the period. Received and outstanding due refer to
+        Revenue: active sales by sale date and non-cancelled bookings by event date in the period. Hall booking revenue is split into hall
+        charges and event food packages (not food sales); received and due are for whole bookings. Received and outstanding due refer to
         those sales/bookings. Collected in period: payments dated in the period. Expenses are shown separately; no profit is calculated
         because restaurant costs (e.g. food cost per dish) are not recorded.
       </p>
