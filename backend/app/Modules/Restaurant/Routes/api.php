@@ -8,6 +8,7 @@ use App\Modules\Restaurant\Http\Controllers\HallController;
 use App\Modules\Restaurant\Http\Controllers\MenuCategoryController;
 use App\Modules\Restaurant\Http\Controllers\MenuItemController;
 use App\Modules\Restaurant\Http\Controllers\RestaurantExpenseController;
+use App\Modules\Restaurant\Http\Controllers\RestaurantReportController;
 use App\Modules\Restaurant\Http\Controllers\SupplierController;
 use Illuminate\Support\Facades\Route;
 
@@ -50,4 +51,9 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
     Route::post('expenses', [RestaurantExpenseController::class, 'store'])->name('expenses.store');
     Route::get('expenses/{expense}', [RestaurantExpenseController::class, 'show'])->name('expenses.show');
     Route::post('expenses/{expense}/reverse', [RestaurantExpenseController::class, 'reverse'])->name('expenses.reverse');
+
+    // Reports (read-only; server-side filters, sorting, pagination and totals).
+    Route::get('reports/summary', [RestaurantReportController::class, 'summary'])->name('reports.summary');
+    Route::get('reports/{report}', [RestaurantReportController::class, 'show'])->name('reports.show')
+        ->whereIn('report', ['sales', 'bookings', 'expenses']);
 });

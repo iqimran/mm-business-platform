@@ -103,6 +103,7 @@ class PermissionSeeder extends Seeder
         'restaurant.expense.view' => 'View restaurant expenses and daily summaries',
         'restaurant.expense.create' => 'Record restaurant expenses',
         'restaurant.expense.reverse' => 'Reverse (correct) restaurant expenses',
+        'restaurant.report.view' => 'View restaurant reports (each area also needs its own view permission)',
     ];
 
     public function run(): void
