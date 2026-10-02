@@ -77,3 +77,21 @@ export function formatValue(value: SettingValue): string {
   if (typeof value === "string") return value;
   return JSON.stringify(value);
 }
+
+/** Mirrors the API rules for business profiles; the API remains the source of truth. */
+export const businessProfileSchema = z.object({
+  name: z.string().trim().min(1, "Business name is required.").max(150, "Business name must be at most 150 characters."),
+  address: z.string().trim().max(500, "Address must be at most 500 characters."),
+  phone: z
+    .string()
+    .trim()
+    .max(100, "Phone must be at most 100 characters.")
+    .refine((v) => v === "" || /^[0-9+()\-\s,/]+$/.test(v), "Use digits, spaces and + ( ) - , / only (several numbers may be separated by commas)."),
+  email: z.string().trim().max(255).refine((v) => v === "" || z.email().safeParse(v).success, "Enter a valid email address."),
+});
+
+export type BusinessProfileValues = z.infer<typeof businessProfileSchema>;
+
+export function toBusinessProfileInput(v: BusinessProfileValues) {
+  return { name: v.name.trim(), address: v.address.trim() || null, phone: v.phone.trim() || null, email: v.email.trim() || null };
+}

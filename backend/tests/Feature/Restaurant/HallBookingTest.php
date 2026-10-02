@@ -341,6 +341,19 @@ class HallBookingTest extends RestaurantTestCase
         $this->assertSame(1, HallBookingPayment::active()->count());
     }
 
+    public function test_no_new_bookings_in_a_deactivated_branch(): void
+    {
+        $global = $this->userWith([...self::ALL, 'branch.access_all']);
+        $this->branchA->update(['is_active' => false]);
+
+        // Global access still sees the branch, but cannot book its halls (same rule as sales and expenses).
+        $this->book([], $global)->assertUnprocessable()->assertJsonValidationErrors(['hall_id' => 'Select an active hall.']);
+        $this->assertSame(0, HallBooking::count());
+
+        $this->branchA->update(['is_active' => true]);
+        $this->book([], $global)->assertCreated();
+    }
+
     public function test_branch_isolation(): void
     {
         $idA = $this->book(['payment' => ['amount' => '100', 'method' => 'cash']])->json('data.id');

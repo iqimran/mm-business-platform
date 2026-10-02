@@ -7,6 +7,7 @@ use App\Modules\Restaurant\Models\FoodSale;
 use App\Modules\Restaurant\Services\FoodSaleQuery;
 use App\Modules\Restaurant\Support\PaymentFormulas;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -21,6 +22,43 @@ class SalesReport extends RestaurantReport
     public function permission(): string
     {
         return 'restaurant.sale.view';
+    }
+
+    public function exportTitle(string $groupBy): string
+    {
+        return $groupBy === 'day' ? 'Food sales — daily totals' : 'Food sales';
+    }
+
+    public function filterLabels(): array
+    {
+        return ['payment_status' => 'Payment status', 'customer_id' => 'Customer'];
+    }
+
+    public function exportColumns(string $groupBy): array
+    {
+        $figures = [
+            ['label' => 'Total', 'type' => 'money', 'value' => fn ($r) => $r['total'], 'total' => fn ($t) => $t['total']],
+            ['label' => 'Received', 'type' => 'money', 'value' => fn ($r) => $r['paid'], 'total' => fn ($t) => $t['paid']],
+            ['label' => 'Due', 'type' => 'money', 'value' => fn ($r) => $r['due'], 'total' => fn ($t) => $t['due']],
+        ];
+
+        if ($groupBy === 'day') {
+            return [
+                ['label' => 'Date', 'type' => 'date', 'value' => fn ($r) => $r['date']],
+                ['label' => 'Sales', 'type' => 'int', 'value' => fn ($r) => $r['count'], 'total' => fn ($t) => $t['count']],
+                ...$figures,
+            ];
+        }
+
+        return [
+            ['label' => 'Sale no.', 'type' => 'text', 'value' => fn ($r) => $r['sale_no']],
+            ['label' => 'Sale time', 'type' => 'date', 'value' => fn ($r) => Carbon::parse($r['sold_at'])->format('Y-m-d H:i')],
+            ['label' => 'Branch', 'type' => 'text', 'value' => fn ($r) => $r['branch']['code']],
+            ['label' => 'Customer', 'type' => 'text', 'value' => fn ($r) => $r['customer'] ?? 'Walk-in'],
+            ['label' => 'Items', 'type' => 'int', 'value' => fn ($r) => $r['items_count']],
+            ...$figures,
+            ['label' => 'Payment status', 'type' => 'text', 'value' => fn ($r) => $r['payment_status']],
+        ];
     }
 
     protected function groupings(): array
@@ -74,8 +112,8 @@ class SalesReport extends RestaurantReport
                 ->selectRaw("to_char(day, 'YYYY-MM-DD') AS day, count(*) AS sales, sum(total_minor) AS total, sum(paid_minor) AS paid")
                 ->groupBy('day')
                 ->orderByRaw($order)
-                ->orderBy('day', 'desc')
-                ->paginate($input['per_page']);
+                ->orderBy('day', 'desc');
+            $page = $this->fetch($page, $input['per_page']);
 
             return self::paginated($page, fn ($r) => [
                 'date' => $r->day,
@@ -91,8 +129,8 @@ class SalesReport extends RestaurantReport
             ->with(['branch:id,name,code', 'customer:id,name'])
             ->withCount('items')
             ->orderByRaw($order)
-            ->orderBy('restaurant_sales.id', 'desc')
-            ->paginate($input['per_page']);
+            ->orderBy('restaurant_sales.id', 'desc');
+        $page = $this->fetch($page, $input['per_page']);
 
         return self::paginated($page, fn (FoodSale $sale) => [
             'id' => $sale->id,

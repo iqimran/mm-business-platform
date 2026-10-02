@@ -11,6 +11,7 @@ import { formatAmount } from "@/lib/money";
 import type { CategoryRow, DayRow, ExpenseTotals, ReportQuery } from "../api";
 import { useReport } from "../hooks";
 import { nextSort } from "../period";
+import { ExportButtons } from "./export-buttons";
 import { SortHead, Totals, type Period } from "./report-controls";
 
 export function ExpensesReport({ period }: { period: Period }) {
@@ -48,6 +49,9 @@ export function ExpensesReport({ period }: { period: Period }) {
             ))}
           </NativeSelect>
         ) : null}
+        <div className="ml-auto">
+          <ExportButtons report="expenses" query={query} />
+        </div>
       </div>
 
       {report.isPending ? <p className="text-sm text-muted-foreground">Loading report…</p> : null}

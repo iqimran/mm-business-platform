@@ -66,3 +66,15 @@ describe("permission denied", () => {
     expect(html(<Forbidden message="Missing: restaurant.menu.view." />)).toContain("Missing: restaurant.menu.view.");
   });
 });
+
+describe("payment receipts", () => {
+  const row: PaymentRecord = {
+    id: "p1", payment_date: "2026-10-02", amount: "500.00", method: "cash", reference: null, notes: null,
+    recorded_by: null, is_reversed: true, reversed_at: "2026-10-02T10:00:00+06:00", reversal_reason: "Wrong",
+  };
+
+  it("offers a receipt for every payment (also reversed ones, which print as VOID) only when printing is available", () => {
+    expect(html(<PaymentsTable payments={[row]} canReverse={false} onReverse={async () => {}} onPrint={async () => {}} />)).toContain("Receipt");
+    expect(html(<PaymentsTable payments={[row]} canReverse={false} onReverse={async () => {}} />)).not.toContain("Receipt");
+  });
+});

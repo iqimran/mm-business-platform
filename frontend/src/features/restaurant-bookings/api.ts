@@ -1,5 +1,5 @@
 import { fetchAllPages } from "@/features/restaurant-common/lookups";
-import { apiRequest } from "@/lib/api-client";
+import { apiOpenPdf, apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
 import { type PaymentInput, type PaymentRecord, type PaymentStatus } from "@/features/restaurant-common/payments";
 
@@ -104,6 +104,11 @@ export function reverseBookingPayment(id: string, paymentId: string, reason: str
     `/restaurant/hall-bookings/${encodeURIComponent(id)}/payments/${encodeURIComponent(paymentId)}/reverse`,
     { method: "POST", body: { reason } },
   );
+}
+
+/** Opens the money receipt (PDF) of a booking payment; reversed payments print as VOID. */
+export function printBookingPaymentReceipt(bookingId: string, paymentId: string) {
+  return apiOpenPdf(`/restaurant/hall-bookings/${encodeURIComponent(bookingId)}/payments/${encodeURIComponent(paymentId)}/receipt`);
 }
 
 export function fetchAvailability(hallId: string, date: string) {

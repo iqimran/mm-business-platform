@@ -3,6 +3,7 @@
 namespace App\Modules\Car\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Modules\Administration\Services\BusinessProfiles;
 use App\Modules\Audit\Services\AuditLogger;
 use App\Modules\Branch\Models\Branch;
 use App\Modules\Car\Reports\BranchReport;
@@ -78,7 +79,7 @@ class CarReportController extends Controller
     /**
      * GET /car-reports/{report}/export?format=xlsx|pdf plus the report's own filters and sort.
      */
-    public function export(Request $request, string $report, ReportExporter $exporter, AuditLogger $audit): Response
+    public function export(Request $request, string $report, ReportExporter $exporter, AuditLogger $audit, BusinessProfiles $profiles): Response
     {
         $format = $request->validate(['format' => ['required', Rule::in(['xlsx', 'pdf'])]])['format'];
         $instance = $this->report($request, $report)->forExport(ReportExporter::$limits[$format]);
@@ -97,9 +98,11 @@ class CarReportController extends Controller
             'filters' => array_intersect_key($request->query(), self::FILTER_LABELS + ['branch_id' => true, 'car_id' => true, 'expense_type_id' => true, 'sort' => true, 'direction' => true]),
         ]);
 
+        $letterhead = $profiles->letterhead('car');
+
         return $format === 'xlsx'
-            ? $exporter->xlsx($title, $columns, $result, $meta, $filename, $summaries)
-            : $exporter->pdf($title, $columns, $result, $meta, $filename, $summaries);
+            ? $exporter->xlsx($title, $columns, $result, $meta, $filename, $summaries, $letterhead)
+            : $exporter->pdf($title, $columns, $result, $meta, $filename, $summaries, $letterhead);
     }
 
     private function show(Request $request, string $name): JsonResponse

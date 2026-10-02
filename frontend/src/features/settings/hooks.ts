@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { fetchSettings, saveSetting, type SettingInput } from "./api";
+import { fetchBusinessProfiles, fetchSettings, saveBusinessProfile, saveSetting, type BusinessModule, type BusinessProfileInput, type SettingInput } from "./api";
 
 const settingsKey = ["settings"] as const;
 
@@ -15,5 +15,23 @@ export function useSaveSetting() {
   return useMutation({
     mutationFn: ({ key, input }: { key: string; input: SettingInput }) => saveSetting(key, input),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: settingsKey }),
+  });
+}
+
+const profilesKey = ["business-profiles"] as const;
+
+export function useBusinessProfiles() {
+  return useQuery({ queryKey: profilesKey, queryFn: fetchBusinessProfiles });
+}
+
+export function useSaveBusinessProfile(module: BusinessModule) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: BusinessProfileInput) => saveBusinessProfile(module, input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: profilesKey });
+      queryClient.invalidateQueries({ queryKey: settingsKey });
+    },
   });
 }

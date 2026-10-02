@@ -29,7 +29,7 @@ export function AppShell({ session, children }: { session: Session; children: Re
           {sections.map((section, index) => (
             <div key={section.title ?? index} className="flex flex-col gap-1">
               {section.title ? (
-                <div className="px-3 pb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">{section.title}</div>
+                <div className="px-3 pb-1 text-xs font-bold uppercase tracking-wide">{section.title}</div>
               ) : null}
               {section.items.map((item) => (
                 <Link

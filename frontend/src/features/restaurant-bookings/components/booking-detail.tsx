@@ -12,7 +12,7 @@ import { PaymentsTable } from "@/features/restaurant-common/components/payments-
 import { ReverseButton } from "@/features/restaurant-common/components/reverse-button";
 import { AmountSummary } from "@/features/restaurant-common/components/amount-summary";
 import { errorMessage } from "@/lib/form-errors";
-import type { HallBooking } from "../api";
+import { printBookingPaymentReceipt, type HallBooking } from "../api";
 import { useCancelBooking, useCompleteBooking, useRecordBookingPayment, useReverseBookingPayment } from "../hooks";
 import { BookingForm } from "./booking-form";
 import { BookingPaymentBadge, BookingStatusBadge } from "./booking-status-badge";
@@ -131,6 +131,7 @@ export function BookingDetail({ booking }: { booking: HallBooking }) {
             payments={booking.payments ?? []}
             canReverse={can("restaurant.booking_payment.reverse")}
             onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason }).then(() => notify("Payment reversed."))}
+            onPrint={(paymentId) => printBookingPaymentReceipt(booking.id, paymentId)}
           />
         </CardContent>
       </Card>

@@ -2,7 +2,7 @@
 
 namespace App\Modules\Car\Services;
 
-use App\Modules\Administration\Models\Setting;
+use App\Modules\Administration\Services\BusinessProfiles;
 use App\Modules\Branch\Models\Branch;
 use App\Modules\Car\Models\CarDealerPayment;
 use App\Modules\Car\Models\CarPartyPayment;
@@ -18,7 +18,10 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class PaymentSlip
 {
-    public function __construct(private readonly CarFinancials $financials) {}
+    public function __construct(
+        private readonly CarFinancials $financials,
+        private readonly BusinessProfiles $profiles,
+    ) {}
 
     public function partyReceipt(CarPartyPayment $payment): Response
     {
@@ -66,12 +69,13 @@ class PaymentSlip
     {
         $car = $payment->car;
         $branch = Branch::find($payment->branch_id);
-        $business = Setting::where('key', 'app.name')->first()?->value;
+        $letterhead = $this->profiles->letterhead('car');
 
         $data = $labels + [
             'title' => $title,
             'number' => self::number($prefix, $payment),
-            'business' => is_string($business) && $business !== '' ? $business : config('app.name'),
+            'business' => $letterhead['name'],
+            'business_lines' => $letterhead['lines'],
             'branch' => $branch,
             'date' => $payment->payment_date->format('d M Y'),
             'amount' => self::grouped(Money::toDecimal($payment->amount_minor)),

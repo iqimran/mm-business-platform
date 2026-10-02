@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api-client";
+import { apiDownload, apiRequest } from "@/lib/api-client";
 import type { Paginated } from "@/types/api";
 import { type PaymentStatus } from "@/features/restaurant-common/payments";
 
@@ -80,4 +80,25 @@ export function fetchSummary(dateFrom: string, dateTo: string, branchId: string)
   const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
   if (branchId) params.set("branch_id", branchId);
   return apiRequest<FinancialSummary>(`/restaurant/reports/summary?${params}`);
+}
+
+export type ExportFormat = "xlsx" | "pdf";
+
+/** Same filters and sorting as on screen; the server exports all matching rows (up to a limit). */
+export function exportParams(name: ReportName | "summary", q: Pick<ReportQuery, "dateFrom" | "dateTo" | "branchId"> & Partial<ReportQuery>, format: ExportFormat) {
+  const params = name === "summary" ? new URLSearchParams() : reportParams({ page: 1, groupBy: "", sort: "", direction: "desc", extra: {}, ...q } as ReportQuery);
+  params.delete("page");
+  params.delete("per_page");
+  if (!params.get("sort")) params.delete("sort");
+  if (name === "summary") {
+    if (q.dateFrom) params.set("date_from", q.dateFrom);
+    if (q.dateTo) params.set("date_to", q.dateTo);
+    if (q.branchId) params.set("branch_id", q.branchId);
+  }
+  params.set("format", format);
+  return params;
+}
+
+export function exportReport(name: ReportName | "summary", q: Parameters<typeof exportParams>[1], format: ExportFormat) {
+  return apiDownload(`/restaurant/reports/${name}/export?${exportParams(name, q, format)}`, `restaurant-${name}.${format}`);
 }

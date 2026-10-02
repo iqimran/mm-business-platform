@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Car;
 
+use App\Modules\Administration\Services\BusinessProfiles;
 use App\Modules\Car\Enums\CarStatus;
 use App\Modules\Car\Models\Car;
 use App\Modules\Car\Models\CarDealer;
@@ -10,6 +11,7 @@ use App\Modules\Car\Services\CarFinancials;
 use App\Modules\Identity\Models\User;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\View;
 use Tests\Feature\Car\Concerns\BuildsCarRecords;
 
 class PaymentSlipTest extends CarTestCase
@@ -77,6 +79,31 @@ class PaymentSlipTest extends CarTestCase
 
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.payment_slip_printed', 'entity_id' => $payment->id, 'user_id' => $user->id]);
         $this->assertDatabaseHas('audit_logs', ['action' => 'car.payment_slip_printed', 'entity_id' => $dealerPayment->id]);
+    }
+
+    public function test_slips_use_the_car_business_profile_as_letterhead(): void
+    {
+        $admin = $this->userWith(['setting.update']);
+        $profiles = app(BusinessProfiles::class);
+        $profiles->save($admin, 'car', ['name' => 'MM Motors', 'address' => 'Gulshan, Dhaka', 'phone' => '+880 1711-000001']);
+        $profiles->save($admin, 'restaurant', ['name' => 'MM Kitchen']);
+
+        $printed = [];
+        View::creator('slips.payment-slip', function ($view) use (&$printed) {
+            $printed[] = $view->getData();
+        });
+
+        $purchase = $this->purchase($this->car, '700000');
+        $payment = $this->partyPayment($this->sale($this->car, '850000'), '500000');
+        $dealerPayment = $this->dealerPayment($purchase, '300000');
+        $this->actingAs($this->viewer())->get("/api/v1/cars/{$this->car->id}/party-payments/{$payment->id}/receipt")->assertOk();
+        $this->actingAs($this->viewer())->get("/api/v1/cars/{$this->car->id}/dealer-payments/{$dealerPayment->id}/voucher")->assertOk();
+
+        $this->assertCount(2, $printed);
+        foreach ($printed as $data) {
+            $this->assertSame('MM Motors', $data['business']);
+            $this->assertSame(['Gulshan, Dhaka', 'Phone: +880 1711-000001'], $data['business_lines']);
+        }
     }
 
     public function test_reversed_payment_still_prints_as_void(): void

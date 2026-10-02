@@ -6,8 +6,10 @@ import { Forbidden, PageHeader } from "@/components/common/page-header";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions } from "@/features/auth/hooks";
+import { BusinessProfiles } from "@/features/settings/components/business-profiles";
 import { SettingForm } from "@/features/settings/components/setting-form";
 import { useSettings } from "@/features/settings/hooks";
+import { isBusinessProfileKey } from "@/features/settings/api";
 import { formatValue } from "@/features/settings/schemas";
 import { errorMessage } from "@/lib/form-errors";
 
@@ -19,6 +21,7 @@ export default function SettingsPage() {
   const settings = useSettings();
   const [editing, setEditing] = useState<Editing>(null);
   const canEdit = can("setting.update");
+  const generic = settings.data?.filter((setting) => !isBusinessProfileKey(setting.key));
 
   if (!can("setting.view")) return <Forbidden />;
 
@@ -37,13 +40,16 @@ export default function SettingsPage() {
         }
       />
 
+      <BusinessProfiles canEdit={canEdit} />
+
+      <h2 className="text-lg font-semibold">Other settings</h2>
       {editing === "" ? <SettingForm onDone={() => setEditing(null)} /> : null}
 
       {settings.isPending ? <p className="text-sm text-muted-foreground">Loading settings…</p> : null}
       {settings.isError ? <p className="text-sm text-destructive">{errorMessage(settings.error)}</p> : null}
 
-      {settings.data ? (
-        settings.data.length === 0 ? (
+      {generic ? (
+        generic.length === 0 ? (
           <div className="rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
             No settings yet.{canEdit ? " Use “Add setting” to create the first one." : ""}
           </div>
@@ -61,7 +67,7 @@ export default function SettingsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {settings.data.map((setting) =>
+                {generic.map((setting) =>
                   editing === setting.key ? (
                     <TableRow key={setting.key}>
                       <TableCell colSpan={4} className="whitespace-normal">

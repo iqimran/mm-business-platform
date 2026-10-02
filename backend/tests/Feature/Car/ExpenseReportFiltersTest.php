@@ -130,7 +130,9 @@ class ExpenseReportFiltersTest extends CarTestCase
         $rows = $this->sheet($this->actingAs($this->reporter())
             ->get("/api/v1/car-reports/expenses/export?format=xlsx&car_id={$this->corolla->id}")->assertOk());
 
-        $this->assertSame('Car expenses — Toyota Corolla (DHAKA GA 11-1111)', $rows[0][0]);
+        // Letterhead first (business name; no address/contact configured), then the title (the reader skips blank rows).
+        $this->assertSame(config('app.name'), $rows[0][0]);
+        $this->assertSame('Car expenses — Toyota Corolla (DHAKA GA 11-1111)', $rows[1][0]);
         $this->assertContains('Car', array_column($rows, 0));
         $header = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Date');
         $this->assertSame(['Date', 'Type', 'Description', 'Amount'], $header);
@@ -147,7 +149,9 @@ class ExpenseReportFiltersTest extends CarTestCase
         $rows = $this->sheet($this->actingAs($this->reporter())
             ->get('/api/v1/car-reports/expenses/export?format=xlsx&month=2026-09')->assertOk());
 
-        $this->assertSame('Car expenses — September 2026', $rows[0][0]);
+        // Letterhead first (business name; no address/contact configured), then the title (the reader skips blank rows).
+        $this->assertSame(config('app.name'), $rows[0][0]);
+        $this->assertSame('Car expenses — September 2026', $rows[1][0]);
         $header = collect($rows)->first(fn ($r) => ($r[0] ?? null) === 'Date');
         $this->assertContains('Car', $header);
         $this->assertStringNotContainsString('Mazda', json_encode($rows));

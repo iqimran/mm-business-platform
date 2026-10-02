@@ -20,6 +20,27 @@ class ExpensesReport extends RestaurantReport
         return 'restaurant.expense.view';
     }
 
+    public function exportTitle(string $groupBy): string
+    {
+        return $groupBy === 'category' ? 'Restaurant expenses — by category' : 'Restaurant expenses — daily totals';
+    }
+
+    public function filterLabels(): array
+    {
+        return ['category_id' => 'Category', 'supplier_id' => 'Supplier'];
+    }
+
+    public function exportColumns(string $groupBy): array
+    {
+        return [
+            $groupBy === 'category'
+                ? ['label' => 'Category', 'type' => 'text', 'value' => fn ($r) => $r['category']]
+                : ['label' => 'Date', 'type' => 'date', 'value' => fn ($r) => $r['date']],
+            ['label' => 'Expenses', 'type' => 'int', 'value' => fn ($r) => $r['count'], 'total' => fn ($t) => $t['count']],
+            ['label' => 'Total', 'type' => 'money', 'value' => fn ($r) => $r['total'], 'total' => fn ($t) => $t['total']],
+        ];
+    }
+
     protected function groupings(): array
     {
         return ['day', 'category'];
@@ -65,8 +86,8 @@ class ExpensesReport extends RestaurantReport
                 ->select('c.id', 'c.name')
                 ->selectRaw('count(*) AS expenses, sum(restaurant_expenses.amount_minor) AS total')
                 ->orderByRaw($order)
-                ->orderBy('c.name')
-                ->paginate($input['per_page']);
+                ->orderBy('c.name');
+            $page = $this->fetch($page, $input['per_page']);
 
             return self::paginated($page, fn ($r) => [
                 'category_id' => $r->id,
@@ -81,8 +102,8 @@ class ExpensesReport extends RestaurantReport
             ->select(DB::raw("to_char(restaurant_expenses.expense_date, 'YYYY-MM-DD') AS day"))
             ->selectRaw('count(*) AS expenses, sum(restaurant_expenses.amount_minor) AS total')
             ->orderByRaw($order)
-            ->orderBy('restaurant_expenses.expense_date', 'desc')
-            ->paginate($input['per_page']);
+            ->orderBy('restaurant_expenses.expense_date', 'desc');
+        $page = $this->fetch($page, $input['per_page']);
 
         return self::paginated($page, fn ($r) => [
             'date' => $r->day,

@@ -38,3 +38,24 @@ describe("report query", () => {
     });
   });
 });
+
+describe("report export query", () => {
+  it("keeps the on-screen filters and sorting but drops paging", async () => {
+    const { exportParams } = await import("./api");
+    const params = exportParams(
+      "sales",
+      { dateFrom: "2026-10-01", dateTo: "2026-10-02", branchId: "b1", groupBy: "day", sort: "total", direction: "asc", page: 3, extra: { payment_status: "partial" } },
+      "xlsx",
+    );
+    expect(Object.fromEntries(params)).toEqual({
+      sort: "total", direction: "asc", date_from: "2026-10-01", date_to: "2026-10-02", branch_id: "b1", group_by: "day", payment_status: "partial", format: "xlsx",
+    });
+  });
+
+  it("exports the summary for the selected period", async () => {
+    const { exportParams } = await import("./api");
+    expect(Object.fromEntries(exportParams("summary", { dateFrom: "2026-10-01", dateTo: "2026-10-31", branchId: "" }, "pdf"))).toEqual({
+      date_from: "2026-10-01", date_to: "2026-10-31", format: "pdf",
+    });
+  });
+});

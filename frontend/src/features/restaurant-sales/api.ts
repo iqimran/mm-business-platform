@@ -1,4 +1,4 @@
-import { apiRequest } from "@/lib/api-client";
+import { apiOpenPdf, apiRequest } from "@/lib/api-client";
 import type { PaymentInput, PaymentMethod, PaymentRecord, PaymentStatus } from "@/features/restaurant-common/payments";
 import type { Paginated } from "@/types/api";
 
@@ -89,6 +89,11 @@ export function reversePayment(saleId: string, paymentId: string, reason: string
     `/restaurant/sales/${encodeURIComponent(saleId)}/payments/${encodeURIComponent(paymentId)}/reverse`,
     { method: "POST", body: { reason } },
   );
+}
+
+/** Opens the money receipt (PDF) of a sale payment; reversed payments print as VOID. */
+export function printSalePaymentReceipt(saleId: string, paymentId: string) {
+  return apiOpenPdf(`/restaurant/sales/${encodeURIComponent(saleId)}/payments/${encodeURIComponent(paymentId)}/receipt`);
 }
 
 export type MenuOption = { id: string; label: string; hint?: string; price: string };

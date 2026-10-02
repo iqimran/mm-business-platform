@@ -13,6 +13,7 @@ import { formatAmount } from "@/lib/money";
 import type { BookingRow, BookingTotals, ReportQuery } from "../api";
 import { useReport } from "../hooks";
 import { nextSort } from "../period";
+import { ExportButtons } from "./export-buttons";
 import { SortHead, Totals, type Period } from "./report-controls";
 
 export function BookingsReport({ period }: { period: Period }) {
@@ -26,14 +27,19 @@ export function BookingsReport({ period }: { period: Period }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <NativeSelect aria-label="Booking status filter" className="w-48" value={view.status} onChange={(e) => setView({ ...view, status: e.target.value, page: 1 })}>
-        <option value="">Confirmed and completed</option>
-        {Object.entries(bookingStatusLabels).map(([key, label]) => (
-          <option key={key} value={key}>
-            {label} only
-          </option>
-        ))}
-      </NativeSelect>
+      <div className="flex flex-wrap gap-2">
+        <NativeSelect aria-label="Booking status filter" className="w-48" value={view.status} onChange={(e) => setView({ ...view, status: e.target.value, page: 1 })}>
+          <option value="">Confirmed and completed</option>
+          {Object.entries(bookingStatusLabels).map(([key, label]) => (
+            <option key={key} value={key}>
+              {label} only
+            </option>
+          ))}
+        </NativeSelect>
+        <div className="ml-auto">
+          <ExportButtons report="bookings" query={query} />
+        </div>
+      </div>
 
       {report.isPending ? <p className="text-sm text-muted-foreground">Loading report…</p> : null}
       {report.isError ? <p className="text-sm text-destructive">{errorMessage(report.error)}</p> : null}

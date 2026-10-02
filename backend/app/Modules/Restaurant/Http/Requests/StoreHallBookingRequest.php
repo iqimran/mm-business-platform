@@ -2,6 +2,7 @@
 
 namespace App\Modules\Restaurant\Http\Requests;
 
+use App\Modules\Branch\Models\Branch;
 use App\Modules\Restaurant\Enums\PaymentMethod;
 use App\Modules\Restaurant\Models\Hall;
 use App\Modules\Restaurant\Models\HallBooking;
@@ -51,9 +52,10 @@ class StoreHallBookingRequest extends FormRequest
             if ($validator->errors()->has('hall_id')) {
                 return;
             }
-            // Unknown and inaccessible halls look the same (existence is not leaked).
+            // Unknown and inaccessible halls look the same (existence is not leaked). Like sales and expenses,
+            // new bookings need an active branch (users with global access can still see inactive branches).
             $branchId = Hall::whereKey($this->input('hall_id'))->value('branch_id');
-            if (! $this->user()->canAccessBranch($branchId)) {
+            if (! $this->user()->canAccessBranch($branchId) || ! Branch::whereKey($branchId)->where('is_active', true)->exists()) {
                 $validator->errors()->add('hall_id', 'Select an active hall.');
             }
         }];

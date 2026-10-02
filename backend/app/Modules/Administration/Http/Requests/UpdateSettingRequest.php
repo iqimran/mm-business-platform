@@ -4,6 +4,7 @@ namespace App\Modules\Administration\Http\Requests;
 
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class UpdateSettingRequest extends FormRequest
 {
@@ -12,6 +13,16 @@ class UpdateSettingRequest extends FormRequest
     public function authorize(): bool
     {
         return $this->user()->can('setting.update');
+    }
+
+    /** Business profiles have their own validated endpoint (/business-profiles/{module}). */
+    public function after(): array
+    {
+        return [function (Validator $validator) {
+            if (str_starts_with((string) $this->route('key'), 'business_profile.')) {
+                $validator->errors()->add('key', 'Business profiles are edited in the business profile settings.');
+            }
+        }];
     }
 
     public function rules(): array

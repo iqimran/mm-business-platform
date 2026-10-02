@@ -7,6 +7,7 @@ use App\Modules\Restaurant\Http\Controllers\HallBookingController;
 use App\Modules\Restaurant\Http\Controllers\HallController;
 use App\Modules\Restaurant\Http\Controllers\MenuCategoryController;
 use App\Modules\Restaurant\Http\Controllers\MenuItemController;
+use App\Modules\Restaurant\Http\Controllers\PaymentReceiptController;
 use App\Modules\Restaurant\Http\Controllers\RestaurantExpenseController;
 use App\Modules\Restaurant\Http\Controllers\RestaurantReportController;
 use App\Modules\Restaurant\Http\Controllers\SupplierController;
@@ -28,6 +29,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
         Route::post('sales/{sale}/reverse', [FoodSaleController::class, 'reverse'])->name('sales.reverse');
         Route::post('sales/{sale}/payments', [FoodSaleController::class, 'storePayment'])->name('sales.payments.store');
         Route::post('sales/{sale}/payments/{payment}/reverse', [FoodSaleController::class, 'reversePayment'])->name('sales.payments.reverse');
+        Route::get('sales/{sale}/payments/{payment}/receipt', [PaymentReceiptController::class, 'salePayment'])->name('sales.payments.receipt');
     });
 
     // Halls (branch-scoped master data) and hall bookings. Explicit actions for the booking workflow.
@@ -42,6 +44,7 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
         Route::post('hall-bookings/{booking}/complete', [HallBookingController::class, 'complete'])->name('hall-bookings.complete');
         Route::post('hall-bookings/{booking}/payments', [HallBookingController::class, 'storePayment'])->name('hall-bookings.payments.store');
         Route::post('hall-bookings/{booking}/payments/{payment}/reverse', [HallBookingController::class, 'reversePayment'])->name('hall-bookings.payments.reverse');
+        Route::get('hall-bookings/{booking}/payments/{payment}/receipt', [PaymentReceiptController::class, 'bookingPayment'])->name('hall-bookings.payments.receipt');
     });
 
     // Daily category-wise expenses (branch-scoped). Immutable: corrections via reversal.
@@ -56,4 +59,6 @@ Route::middleware(['auth:sanctum', 'active'])->prefix('restaurant')->name('resta
     Route::get('reports/summary', [RestaurantReportController::class, 'summary'])->name('reports.summary');
     Route::get('reports/{report}', [RestaurantReportController::class, 'show'])->name('reports.show')
         ->whereIn('report', ['sales', 'bookings', 'expenses']);
+    Route::get('reports/{report}/export', [RestaurantReportController::class, 'export'])->name('reports.export')
+        ->whereIn('report', ['sales', 'bookings', 'expenses', 'summary']);
 });

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { usePermissions } from "@/features/auth/hooks";
 import { formatAmount } from "@/lib/money";
-import type { FoodSale } from "../api";
+import { printSalePaymentReceipt, type FoodSale } from "../api";
 import { useRecordPayment, useReversePayment, useReverseSale } from "../hooks";
 import { PaymentForm } from "@/features/restaurant-common/components/payment-form";
 import { PaymentStatusBadge } from "@/features/restaurant-common/components/payment-status-badge";
@@ -120,6 +120,7 @@ export function SaleDetail({ sale }: { sale: FoodSale }) {
             payments={sale.payments ?? []}
             canReverse={can("restaurant.sale_payment.reverse") && !sale.is_reversed}
             onReverse={(paymentId, reason) => reversePayment.mutateAsync({ paymentId, reason }).then(() => notify("Payment reversed."))}
+            onPrint={(paymentId) => printSalePaymentReceipt(sale.id, paymentId)}
           />
         </CardContent>
       </Card>

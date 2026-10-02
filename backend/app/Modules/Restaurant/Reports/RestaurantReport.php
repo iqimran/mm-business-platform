@@ -6,6 +6,7 @@ use App\Modules\Identity\Models\User;
 use App\Modules\Shared\Http\ApiResponse;
 use App\Modules\Shared\Support\Money;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -17,6 +18,32 @@ use Illuminate\Validation\ValidationException;
  */
 abstract class RestaurantReport
 {
+    /** When set, the report returns all rows (up to this limit) for export instead of one page. */
+    private ?int $exportLimit = null;
+
+    public function forExport(int $maxRows): static
+    {
+        $this->exportLimit = $maxRows;
+
+        return $this;
+    }
+
+    /** Export title, e.g. "Food sales — daily totals". */
+    abstract public function exportTitle(string $groupBy): string;
+
+    /**
+     * Export columns for the current grouping: label, type (text|money|int|date), value getter, optional total getter.
+     *
+     * @return list<array{label: string, type: string, value: callable(array): mixed, total?: callable(array): mixed}>
+     */
+    abstract public function exportColumns(string $groupBy): array;
+
+    /** Human-readable filter labels for export headers (filter key => label). */
+    public function filterLabels(): array
+    {
+        return [];
+    }
+
     /** Permission for the reported area, in addition to restaurant.report.view. */
     abstract public function permission(): string;
 
@@ -76,6 +103,27 @@ abstract class RestaurantReport
             'direction' => $validated['direction'] ?? 'desc',
             'per_page' => ApiResponse::perPage($request),
         ];
+    }
+
+    /**
+     * One page normally; in export mode all rows (refusing more than the limit).
+     *
+     * @param  Builder|\Illuminate\Database\Query\Builder  $query
+     */
+    protected function fetch($query, int $perPage): LengthAwarePaginator
+    {
+        if ($this->exportLimit === null) {
+            return $query->paginate($perPage);
+        }
+
+        $all = $query->paginate($this->exportLimit, ['*'], 'page', 1);
+        if ($all->total() > $this->exportLimit) {
+            throw ValidationException::withMessages([
+                'format' => "This report has {$all->total()} rows; the export limit is {$this->exportLimit}. Narrow the filters and try again.",
+            ]);
+        }
+
+        return $all;
     }
 
     protected static function money(int $minor): string

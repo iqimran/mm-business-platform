@@ -1,8 +1,10 @@
 <?php
 
-namespace App\Modules\Car\Reports;
+namespace App\Modules\Restaurant\Reports;
 
 use Barryvdh\DomPDF\Facade\Pdf;
+use OpenSpout\Common\Entity\Cell;
+use OpenSpout\Common\Entity\Cell\StringCell;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Common\Entity\Style\Style;
 use OpenSpout\Writer\XLSX\Writer;
@@ -10,8 +12,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Renders a report result (rows + totals already computed and permission-filtered by the
- * report) as Excel or PDF. No figures are calculated here; values are only formatted.
+ * Renders a restaurant report result (rows + totals already computed and permission-filtered)
+ * as Excel or PDF. No figures are calculated here; values are only formatted.
  */
 class ReportExporter
 {
@@ -21,14 +23,14 @@ class ReportExporter
     private const MONEY_FORMAT = '#,##0.00';
 
     /**
-     * @param  array<int, array{label: string, type: string, value: callable, total?: callable}>  $columns
+     * @param  list<array{label: string, type: string, value: callable, total?: callable}>  $columns
      * @param  array{items: array<int, array>, totals?: array}  $result
-     * @param  array<string, string>  $meta  header lines, e.g. ['Generated' => '...', 'Filters' => '...']
+     * @param  array<string, string>  $meta  header lines, e.g. ['Period' => '...']
      * @param  array{name: string, lines: list<string>}|null  $letterhead  business name/address/contact printed above the title
      */
-    public function xlsx(string $title, array $columns, array $result, array $meta, string $filename, array $summaries = [], ?array $letterhead = null): BinaryFileResponse
+    public function xlsx(string $title, array $columns, array $result, array $meta, string $filename, ?array $letterhead = null): BinaryFileResponse
     {
-        $path = tempnam(sys_get_temp_dir(), 'report');
+        $path = tempnam(sys_get_temp_dir(), 'restaurant-report');
         $writer = new Writer;
         $writer->openToFile($path);
         $writer->getCurrentSheet()->setName(substr(preg_replace('/[\\\\\/?*\[\]:]/', '', $title), 0, 31));
@@ -38,60 +40,42 @@ class ReportExporter
         $boldMoney = (new Style)->withFontBold(true)->withFormat(self::MONEY_FORMAT);
 
         if ($letterhead !== null) {
-            $writer->addRow(Row::fromValuesWithStyle([$letterhead['name']], (new Style)->withFontBold(true)->withFontSize(14)));
+            $writer->addRow(self::row([$letterhead['name']], [], (new Style)->withFontBold(true)->withFontSize(14)));
             foreach ($letterhead['lines'] as $line) {
-                $writer->addRow(Row::fromValues([$line]));
+                $writer->addRow(self::row([$line]));
             }
-            $writer->addRow(Row::fromValues([]));
+            $writer->addRow(self::row([]));
         }
-        $writer->addRow(Row::fromValuesWithStyle([$title], (new Style)->withFontBold(true)->withFontSize($letterhead !== null ? 12 : 14)));
+        $writer->addRow(self::row([$title], [], (new Style)->withFontBold(true)->withFontSize($letterhead !== null ? 12 : 14)));
         foreach ($meta as $label => $value) {
-            $writer->addRow(Row::fromValues([$label, $value]));
+            $writer->addRow(self::row([$label, $value]));
         }
-        $writer->addRow(Row::fromValues([]));
-        $writer->addRow(Row::fromValuesWithStyle(array_column($columns, 'label'), $bold));
+        $writer->addRow(self::row([]));
+        $writer->addRow(self::row(array_column($columns, 'label'), [], $bold));
 
-        $moneyStyles = [];
+        $styles = [];
         foreach ($columns as $i => $c) {
             if ($c['type'] === 'money') {
-                $moneyStyles[$i] = $money;
+                $styles[$i] = $money;
             }
         }
-
         foreach ($result['items'] as $row) {
-            $values = array_map(fn ($c) => self::cell($c['type'], ($c['value'])($row)), $columns);
-            $writer->addRow(Row::fromValuesWithStyles($values, $moneyStyles));
+            $writer->addRow(self::row(array_map(fn ($c) => self::cell($c['type'], ($c['value'])($row)), $columns), $styles));
         }
 
-        if (isset($result['totals']) && $this->hasTotals($columns)) {
+        if (isset($result['totals']) && self::hasTotals($columns) && $result['items'] !== []) {
             $values = [];
-            $styles = [];
+            $totalStyles = [];
             foreach ($columns as $i => $c) {
                 $values[] = $i === 0 ? 'Total' : (isset($c['total']) ? self::cell($c['type'], ($c['total'])($result['totals'])) : null);
-                $styles[$i] = $c['type'] === 'money' ? $boldMoney : $bold;
+                $totalStyles[$i] = $c['type'] === 'money' ? $boldMoney : $bold;
             }
-            $writer->addRow(Row::fromValuesWithStyles($values, $styles));
-        }
-
-        foreach ($summaries as $summary) {
-            $writer->addRow(Row::fromValues([]));
-            $writer->addRow(Row::fromValuesWithStyle([$summary['title']], $bold));
-            $writer->addRow(Row::fromValuesWithStyle(array_column($summary['columns'], 'label'), $bold));
-            $styles = [];
-            foreach ($summary['columns'] as $i => $c) {
-                if ($c['type'] === 'money') {
-                    $styles[$i] = $money;
-                }
-            }
-            foreach ($summary['rows'] as $row) {
-                $writer->addRow(Row::fromValuesWithStyles(array_map(fn ($c) => self::cell($c['type'], ($c['value'])($row)), $summary['columns']), $styles));
-            }
+            $writer->addRow(self::row($values, $totalStyles));
         }
 
         foreach ($columns as $i => $c) {
             $writer->getCurrentSheet()->setColumnWidth($c['type'] === 'money' ? 16 : max(12, min(40, strlen($c['label']) + 4)), $i + 1);
         }
-
         $writer->close();
 
         return response()->download($path, $filename, [
@@ -100,32 +84,23 @@ class ReportExporter
     }
 
     /**
-     * @param  array<int, array{label: string, type: string, value: callable, total?: callable}>  $columns
+     * @param  list<array{label: string, type: string, value: callable, total?: callable}>  $columns
      */
-    public function pdf(string $title, array $columns, array $result, array $meta, string $filename, array $summaries = [], ?array $letterhead = null): Response
+    public function pdf(string $title, array $columns, array $result, array $meta, string $filename, ?array $letterhead = null): Response
     {
-        $rows = array_map(
-            fn ($row) => array_map(fn ($c) => self::display($c['type'], ($c['value'])($row)), $columns),
-            $result['items'],
-        );
+        $rows = array_map(fn ($row) => array_map(fn ($c) => self::display($c['type'], ($c['value'])($row)), $columns), $result['items']);
 
         $totals = null;
-        if (isset($result['totals']) && $this->hasTotals($columns)) {
+        if (isset($result['totals']) && self::hasTotals($columns)) {
             $totals = array_map(
                 fn ($c, $i) => $i === 0 ? 'Total' : (isset($c['total']) ? self::display($c['type'], ($c['total'])($result['totals'])) : ''),
                 $columns, array_keys($columns),
             );
         }
 
-        // Wide reports get a larger page and smaller type so no column is cut off.
-        $count = count($columns);
-        [$paper, $orientation, $fontSize] = match (true) {
-            $count > 12 => ['a3', 'landscape', '7.5pt'],
-            $count > 6 => ['a4', 'landscape', '8pt'],
-            default => ['a4', 'portrait', '8.5pt'],
-        };
+        [$orientation, $fontSize] = count($columns) > 6 ? ['landscape', '8pt'] : ['portrait', '8.5pt'];
 
-        return Pdf::loadView('reports.car-report', [
+        return Pdf::loadView('restaurant.report', [
             'title' => $title,
             'letterhead' => $letterhead,
             'meta' => $meta,
@@ -133,19 +108,31 @@ class ReportExporter
             'rows' => $rows,
             'totals' => $totals,
             'fontSize' => $fontSize,
-            'summaries' => array_map(fn ($s) => [
-                'title' => $s['title'],
-                'columns' => $s['columns'],
-                'rows' => array_map(fn ($row) => array_map(fn ($c) => self::display($c['type'], ($c['value'])($row)), $s['columns']), $s['rows']),
-            ], $summaries),
         ])
-            // Embed only the glyphs used (keeps files small).
             ->setOption('isFontSubsettingEnabled', true)
-            ->setPaper($paper, $orientation)
+            ->setPaper('a4', $orientation)
             ->download($filename);
     }
 
-    private function hasTotals(array $columns): bool
+    /**
+     * Builds a row cell by cell. Text is always written as a plain string cell: OpenSpout would otherwise
+     * turn values starting with "=" into live formulas (spreadsheet formula injection from user-entered names).
+     *
+     * @param  array<int, mixed>  $values
+     * @param  array<int, Style>  $styles  per-column styles
+     */
+    private static function row(array $values, array $styles = [], ?Style $rowStyle = null): Row
+    {
+        $cells = [];
+        foreach (array_values($values) as $i => $value) {
+            $style = $styles[$i] ?? $rowStyle;
+            $cells[] = is_string($value) && $value !== '' ? new StringCell($value, $style) : Cell::fromValue($value, $style);
+        }
+
+        return new Row($cells);
+    }
+
+    private static function hasTotals(array $columns): bool
     {
         return collect($columns)->contains(fn ($c) => isset($c['total']));
     }

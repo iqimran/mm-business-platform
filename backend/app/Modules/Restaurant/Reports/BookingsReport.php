@@ -23,6 +23,33 @@ class BookingsReport extends RestaurantReport
         return 'restaurant.booking.view';
     }
 
+    public function exportTitle(string $groupBy): string
+    {
+        return 'Hall bookings';
+    }
+
+    public function filterLabels(): array
+    {
+        return ['status' => 'Status', 'payment_status' => 'Payment status', 'hall_id' => 'Hall', 'customer_id' => 'Customer'];
+    }
+
+    public function exportColumns(string $groupBy): array
+    {
+        return [
+            ['label' => 'Booking no.', 'type' => 'text', 'value' => fn ($r) => $r['booking_no']],
+            ['label' => 'Event date', 'type' => 'date', 'value' => fn ($r) => $r['booking_date']],
+            ['label' => 'Time', 'type' => 'text', 'value' => fn ($r) => $r['start_time'].'–'.$r['end_time']],
+            ['label' => 'Branch', 'type' => 'text', 'value' => fn ($r) => $r['branch']['code']],
+            ['label' => 'Hall', 'type' => 'text', 'value' => fn ($r) => $r['hall']],
+            ['label' => 'Customer', 'type' => 'text', 'value' => fn ($r) => $r['customer']],
+            ['label' => 'Status', 'type' => 'text', 'value' => fn ($r) => $r['status']],
+            ['label' => 'Booking amount', 'type' => 'money', 'value' => fn ($r) => $r['agreed_amount'], 'total' => fn ($t) => $t['agreed_amount']],
+            ['label' => 'Received', 'type' => 'money', 'value' => fn ($r) => $r['paid'], 'total' => fn ($t) => $t['paid']],
+            ['label' => 'Due', 'type' => 'money', 'value' => fn ($r) => $r['due'], 'total' => fn ($t) => $t['due']],
+            ['label' => 'Payment status', 'type' => 'text', 'value' => fn ($r) => $r['payment_status']],
+        ];
+    }
+
     protected function filterRules(): array
     {
         return [
@@ -67,8 +94,8 @@ class BookingsReport extends RestaurantReport
             ->with(['branch:id,name,code', 'hall:id,name', 'customer:id,name'])
             ->orderByRaw("{$this->sortable('')[$input['sort']]} {$input['direction']}")
             ->orderBy('restaurant_hall_bookings.start_time', $input['direction'])
-            ->orderBy('restaurant_hall_bookings.id', 'desc')
-            ->paginate($input['per_page']);
+            ->orderBy('restaurant_hall_bookings.id', 'desc');
+        $page = $this->fetch($page, $input['per_page']);
 
         return self::paginated($page, function (HallBooking $b) {
             $cancelled = $b->status === BookingStatus::Cancelled;

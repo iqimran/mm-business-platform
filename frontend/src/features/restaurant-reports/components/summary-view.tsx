@@ -5,6 +5,7 @@ import { errorMessage } from "@/lib/form-errors";
 import { formatAmount } from "@/lib/money";
 import type { StreamSummary } from "../api";
 import { useFinancialSummary } from "../hooks";
+import { ExportButtons } from "./export-buttons";
 import type { Period } from "./report-controls";
 
 function Figures({ rows }: { rows: [string, string | number][] }) {
@@ -54,6 +55,11 @@ export function SummaryView({ period }: { period: Period }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {nothing ? null : (
+        <div className="flex justify-end">
+          <ExportButtons report="summary" query={period} />
+        </div>
+      )}
       {nothing ? <p className="text-sm text-muted-foreground">You do not have access to any restaurant figures.</p> : null}
       <div className="grid gap-4 md:grid-cols-3">
         {data.food_sales ? <Stream title="Food sales" data={data.food_sales} countLabel="Sales" /> : null}

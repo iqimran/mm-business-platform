@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>{{ $title }} {{ $number }}</title>
+    <title>Money Receipt {{ $number }}</title>
     <style>
         @page { margin: 12mm 11mm; }
         body { font-family: "DejaVu Sans", sans-serif; font-size: 9pt; color: #111; }
@@ -12,14 +12,17 @@
         .branch { color: #444; font-size: 8pt; margin-top: 2px; }
         .title { display: inline-block; margin-top: 6px; padding: 2px 14px; border: 1.5px solid #111; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; }
         table { width: 100%; border-collapse: collapse; }
-        .meta td { padding: 2px 0; }
+        .meta td { padding: 2px 0; vertical-align: top; }
         .label { color: #555; width: 38%; }
         .amount-box { margin: 10px 0; border: 1.5px solid #111; padding: 6px 8px; }
         .amount { font-size: 15pt; font-weight: bold; }
         .words { font-style: italic; margin-top: 2px; }
         .section { margin-top: 8px; font-weight: bold; border-bottom: 1px solid #bbb; padding-bottom: 2px; }
+        .items th { text-align: left; font-weight: normal; color: #555; border-bottom: 1px solid #ddd; padding: 2px 0; }
+        .items td { padding: 2px 0; }
+        .items th.num { text-align: right; }
+        .num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
         .figures td { padding: 2px 0; }
-        .figures td.num { text-align: right; font-family: "DejaVu Sans Mono", monospace; }
         .figures tr.total td { border-top: 1px solid #111; font-weight: bold; }
         .sign { margin-top: 34px; }
         .sign td { width: 50%; text-align: center; padding-top: 3px; }
@@ -44,13 +47,13 @@
                 Branch: {{ $branch->name }} ({{ $branch->code }})@if ($branch->address) · {{ $branch->address }}@endif @if ($branch->phone) · {{ $branch->phone }}@endif
             </div>
         @endif
-        <div class="title">{{ $title }}</div>
+        <div class="title">Money Receipt</div>
     </div>
 
     <table class="meta">
-        <tr><td class="label">{{ $title === 'Money Receipt' ? 'Receipt no.' : 'Voucher no.' }}</td><td><strong>{{ $number }}</strong></td></tr>
+        <tr><td class="label">Receipt no.</td><td><strong>{{ $number }}</strong></td></tr>
         <tr><td class="label">Date</td><td>{{ $date }}</td></tr>
-        <tr><td class="label">{{ $counterparty_label }}</td><td><strong>{{ $counterparty }}</strong>@if ($counterparty_detail)<br><span style="color:#555">{{ $counterparty_detail }}</span>@endif</td></tr>
+        <tr><td class="label">Received with thanks from</td><td><strong>{{ $customer }}</strong>@if ($customer_detail)<br><span style="color:#555">{{ $customer_detail }}</span>@endif</td></tr>
         <tr><td class="label">Payment method</td><td>{{ $method }}@if ($reference) · Ref. {{ $reference }}@endif</td></tr>
     </table>
 
@@ -61,18 +64,30 @@
 
     <div class="section">{{ $purpose }}</div>
     <table class="meta">
-        <tr><td class="label">Car</td><td>{{ $car }}</td></tr>
-        <tr><td class="label">Chassis no.</td><td>{{ $chassis }}</td></tr>
-        @if ($registration)
-            <tr><td class="label">Registration no.</td><td>{{ $registration }}</td></tr>
-        @endif
+        @foreach ($document as $label => $value)
+            <tr><td class="label">{{ $label }}</td><td>{{ $value }}</td></tr>
+        @endforeach
     </table>
+
+    @if (count($items) > 0)
+        <table class="items" style="margin-top: 4px;">
+            <tr><th>Item</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Amount</th></tr>
+            @foreach ($items as $item)
+                <tr>
+                    <td>{{ $item['name'] }}</td>
+                    <td class="num">{{ $item['quantity'] }}</td>
+                    <td class="num">{{ $item['unit_price'] }}</td>
+                    <td class="num">{{ $item['line_total'] }}</td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
 
     <div class="section">Account position after this payment</div>
     <table class="figures">
         <tr><td>{{ $obligation_label }}</td><td class="num">Tk {{ $obligation }}</td></tr>
-        <tr><td>{{ $paid_label }}</td><td class="num">Tk {{ $paid_to_date }}</td></tr>
-        <tr class="total"><td>{{ $outstanding_label }}</td><td class="num">Tk {{ $outstanding }}</td></tr>
+        <tr><td>Total received to date</td><td class="num">Tk {{ $paid_to_date }}</td></tr>
+        <tr class="total"><td>Balance due</td><td class="num">Tk {{ $outstanding }}</td></tr>
     </table>
 
     @if ($notes)
@@ -88,9 +103,8 @@
 
     <table class="sign">
         <tr>
-            @foreach ($signatures as $signature)
-                <td><span>{{ $signature }}</span></td>
-            @endforeach
+            <td><span>Customer</span></td>
+            <td><span>Received by</span></td>
         </tr>
     </table>
 
