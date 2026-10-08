@@ -15,7 +15,7 @@ export function presetRange(preset: PeriodPreset, now = new Date()): { from: str
       return { from: iso(d), to: iso(d) };
     }
     case "this_month":
-      return { from: iso(new Date(y, m, 1)), to: iso(now) };
+      return { from: iso(new Date(y, m, 1)), to: iso(new Date(y, m + 1, 0)) };
     case "last_month":
       return { from: iso(new Date(y, m - 1, 1)), to: iso(new Date(y, m, 0)) };
   }
